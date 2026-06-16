@@ -33,33 +33,33 @@ export interface RiskInput {
 
 const DEFAULT_ALLOWED_TOKENS: FxTokenSymbol[] = ['USDC', 'EURC'];
 
-function readNumberEnv(key: string, fallback: number) {
-  const raw = process.env[key];
+function readNumberEnv(key: string, fallback: number): number {
+  const raw = process.env[key] as string | undefined;
   const parsed = Number(raw);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
 function readTokenListEnv(key: string): FxTokenSymbol[] {
-  const raw = process.env[key];
+  const raw = process.env[key] as string | undefined;
   if (!raw) return DEFAULT_ALLOWED_TOKENS;
 
   const known = new Set(Object.keys(FX_TOKENS) as FxTokenSymbol[]);
   const parsed = raw
     .split(',')
-    .map((item) => item.trim().toUpperCase() as FxTokenSymbol)
-    .filter((item) => known.has(item));
+    .map((item: string) => item.trim().toUpperCase() as FxTokenSymbol)
+    .filter((item: FxTokenSymbol) => known.has(item));
 
   return parsed.length > 0 ? parsed : DEFAULT_ALLOWED_TOKENS;
 }
 
-function readAddressListEnv(key: string) {
+function readAddressListEnv(key: string): string[] {
   return (process.env[key] ?? '')
     .split(',')
-    .map((item) => item.trim().toLowerCase())
+    .map((item: string) => item.trim().toLowerCase())
     .filter(Boolean);
 }
 
-function estimateUsdValue(amount: number, tokenSymbol: FxTokenSymbol) {
+function estimateUsdValue(amount: number, tokenSymbol: FxTokenSymbol): number {
   if (tokenSymbol === 'EURC') return amount * 1.08;
   return amount;
 }
@@ -146,3 +146,4 @@ export function assertRiskAllowed(input: RiskInput): RiskAssessment {
   }
   return assessment;
 }
+
