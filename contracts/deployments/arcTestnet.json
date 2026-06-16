@@ -1,0 +1,18 @@
+{
+  "network": "arcTestnet",
+  "chainId": 5042002,
+  "deployedAt": "2026-05-16T10:16:00.125Z",
+  "deployer": "0x248de490fCE3B639bCAb1A1E1bC96a0298D637F5",
+  "owner": "0x248de490fCE3B639bCAb1A1E1bC96a0298D637F5",
+  "usdcAddress": "0x3600000000000000000000000000000000000000",
+  "recurringPaymentsAddress": "0x326774E87C37F65449ce509EE4872A58EFA4C64E",
+  "invoiceManagerAddress": "0x4F558D1BE50c32e599527b18c459353707E04707",
+  "predictionMarketAddress": "0x950c98E7F368E24EB5956e08688302E48A04E254",
+  "recurringMinInterval": "86400",
+  "invoiceMaxAmountRaw": "100000000000",
+  "invoiceMaxAmountUsdc": "100000",
+  "marketsFeeRecipient": "0x248de490fCE3B639bCAb1A1E1bC96a0298D637F5",
+  "marketsFeeBps": "100",
+  "marketsMaxBetRaw": "1000000000",
+  "marketsMaxBetUsdc": "1000"
+}

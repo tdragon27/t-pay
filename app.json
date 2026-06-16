@@ -1,0 +1,50 @@
+{
+    "expo":  {
+                 "name":  "T Pay",
+                 "slug":  "t-pay",
+                 "version":  "1.0.0",
+                 "orientation":  "portrait",
+                 "userInterfaceStyle":  "dark",
+                 "scheme":  "tpay",
+                 "splash":  {
+                                "backgroundColor":  "#0A0A0F"
+                            },
+                 "updates":  {
+                                 "fallbackToCacheTimeout":  0
+                             },
+                 "assetBundlePatterns":  [
+                                             "**/*"
+                                         ],
+                 "ios":  {
+                             "supportsTablet":  false,
+                             "bundleIdentifier":  "com.tpay.wallet",
+                             "infoPlist":  {
+                                               "NSCameraUsageDescription":  "T Pay uses the camera to scan QR codes for payments.",
+                                               "NSFaceIDUsageDescription":  "T Pay uses Face ID to secure your wallet."
+                                           }
+                         },
+                 "android":  {
+                                 "package":  "com.tpay.wallet",
+                                 "permissions":  [
+                                                     "android.permission.CAMERA"
+                                                 ]
+                             },
+                 "web":  {
+                             "bundler":  "metro"
+                         },
+                 "plugins":  [
+                                 "expo-router",
+                                 "expo-secure-store",
+                                 [
+                                     "expo-camera",
+                                     {
+                                         "cameraPermission":  "T Pay uses the camera to scan QR codes for payments."
+                                     }
+                                 ],
+                                 "expo-asset"
+                             ],
+                 "experiments":  {
+                                     "typedRoutes":  true
+                                 }
+             }
+}
