@@ -1,4 +1,4 @@
-{
+﻿{
     "name":  "t-pay",
     "version":  "1.0.0",
     "main":  "./index.js",
@@ -78,5 +78,23 @@
                             "prettier":  "^3.3.0",
                             "react-native-worklets":  "0.5.1",
                             "typescript":  "~5.9.2"
-                        }
+                        },
+    "description":  "Social USDC payment app on Arc Testnet",
+    "repository":  {
+                       "type":  "git",
+                       "url":  "https://github.com/tdragon27/t-pay.git"
+                   },
+    "bugs":  {
+                 "url":  "https://github.com/tdragon27/t-pay/issues"
+             },
+    "homepage":  "https://github.com/tdragon27/t-pay#readme",
+    "keywords":  [
+                     "arc",
+                     "circle",
+                     "usdc",
+                     "expo",
+                     "react-native",
+                     "testnet",
+                     "payments"
+                 ]
 }

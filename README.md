@@ -18,10 +18,10 @@ Most wallets feel like asset dashboards. T Pay is designed around payment moment
 ## Main Features
 
 - Self-custodial wallet creation/import with secure local storage.
-- Arc Testnet USDC balance, receive QR, send flow, and cached balance fallback.
+- Arc Testnet balances for USDC, EURC, and cirBTC, plus receive QR, send flow, and cached balance fallback.
 - Smart QR and payment links for wallet requests, split bills, and invoices.
-- Split Bill with equal/custom shares, participant links, copy-all links, unpaid reminders, partial/complete status, and optional Supabase sync.
-- Merchant invoices with QR/payment links, status tracking, CSV/export surfaces, and optional backend/indexer readiness.
+- Split Bill MVP for simple group payments: total USDC, people count, note, receiver wallet, QR/link sharing, collected progress, and optional Supabase sync.
+- Merchant payment requests with QR/payment links, status tracking, CSV/export surfaces, and optional backend/indexer readiness.
 - Unified Activity feed for send, receive, split, merchant, bridge, swap, and passport events.
 - App Kit Swap readiness for same-chain stablecoin swaps on Arc Testnet.
 - Unified Balance readiness card in Portfolio / Debug with honest configured/missing states.
@@ -78,7 +78,7 @@ docs/                    Demo, grant, validation, and integration notes
 - Node.js 20+
 - npm
 - Expo Go or an Expo development build
-- Arc Testnet USDC for demos
+- Arc Testnet assets for demos: USDC, EURC, and cirBTC
 - Optional Circle App Kit project id/key for live App Kit-backed flows
 - Optional Supabase project for cross-device Split Bill sync
 
@@ -164,7 +164,7 @@ Add screenshots or demo frames here before publishing the GitHub repository:
 ```text
 docs/screenshots/home.png
 docs/screenshots/split-bill.png
-docs/screenshots/merchant-invoice.png
+docs/screenshots/merchant-payment-request.png
 docs/screenshots/activity.png
 docs/screenshots/developer-debug.png
 ```
@@ -175,7 +175,7 @@ docs/screenshots/developer-debug.png
 - Developer Debug and copied reports must never include seed phrases, private keys, API keys, or raw secret-like env values.
 - `EXPO_PUBLIC_*` values are bundled into the mobile app. Never place backend-only secrets there.
 - Private-key export is dangerous and should remain guarded by PIN/biometric confirmation.
-- Testnet prediction/market experiments are not production/legal-ready.
+- Testnet Community Picks are not production/legal-ready and should remain clearly labelled as testnet experiments.
 
 ## Useful Commands
 
@@ -196,4 +196,8 @@ npx expo export --platform ios --clear
 - https://docs.arc.io/app-kit/bridge
 - https://docs.arc.io/app-kit/swap
 - https://docs.arc.io/app-kit/unified-balance
+
+## License
+
+No open-source license has been selected yet. Until a license is added, all rights are reserved by default.
 
