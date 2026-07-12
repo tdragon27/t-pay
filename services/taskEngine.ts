@@ -6,14 +6,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { bridgeService, type BridgeJob } from '@/services/bridgeService';
 import { faucetService, type FaucetResult } from '@/services/faucetService';
-import { type Hex } from 'viem';
-import { getPublicClient, ERC20_ABI } from '@/lib/viemClient';
-import { sendUsdcWithAppKit } from '@/lib/arcAppKit';
-import { TOKEN_ADDRESSES, type BridgeChain } from '@/constants/chains';
-import { loadPrivateKey } from '@/lib/wallet';
-import { parseUsdc } from '@/utils/format';
+import { type BridgeJob } from '@/services/bridgeService';
+import { type BridgeChain } from '@/constants/chains';
+import { canAutoExecuteWalletTask } from '@/utils/tpayLogic';
 
 // ─── Task types ───────────────────────────────────────────────────────────────
 
@@ -158,44 +154,14 @@ class TaskEngine {
         if (result.status !== 'success') run.error = result.error;
 
       } else if (task.type === 'send') {
-        // ── Calls existing send logic via viemClient ──────────────────────
-        if (!task.to || !task.amount) throw new Error('send requires `to` and `amount`');
-
-        const pk = await loadPrivateKey();
-        if (!pk) throw new Error('Wallet not found');
-
-        const amount       = parseUsdc(task.amount);
-        const publicClient = getPublicClient();
-
-        const balance = await publicClient.readContract({
-          address:      TOKEN_ADDRESSES.ARC_USDC,
-          abi:          ERC20_ABI,
-          functionName: 'balanceOf',
-          args:         [address as `0x${string}`],
-        }) as bigint;
-
-        if (amount > balance) {
-          throw new Error('Insufficient USDC balance for this AutoFlow send step.');
+        if (!canAutoExecuteWalletTask(task.type)) {
+          throw new Error('Send requires individual review and confirmation in T Pay.');
         }
 
-        const hash = await sendUsdcWithAppKit(pk, task.to, task.amount);
-        await publicClient.waitForTransactionReceipt({ hash: hash as Hex, confirmations: 1 });
-
-        run.result = { txHash: hash };
-        run.status = 'success';
-
       } else if (task.type === 'bridge') {
-        // ── Calls bridgeService.bridgeUSDC() ─────────────────────────────
-        if (!task.toChain || !task.amount) throw new Error('bridge requires `toChain` and `amount`');
-
-        const job  = await bridgeService.bridgeUSDC(
-          task.toChain,
-          task.amount,
-          address,
-        );
-        run.result = job;
-        run.status = job.status === 'success' ? 'success' : 'failed';
-        if (job.status === 'failed') run.error = job.error;
+        if (!canAutoExecuteWalletTask(task.type)) {
+          throw new Error('Bridge requires individual review and confirmation in T Pay.');
+        }
       }
 
     } catch (e: any) {

@@ -93,7 +93,7 @@ class FaucetService {
 
   async claimFaucet(
     address:     string,
-    chainId:     number = Number(process.env.EXPO_PUBLIC_ARC_CHAIN_ID ?? 5042002),
+    chainId:     number = 5042002,
     openBrowser: boolean = true,
   ): Promise<FaucetResult> {
     const providers = this.getProviders(chainId);

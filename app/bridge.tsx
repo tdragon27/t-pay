@@ -26,7 +26,7 @@ import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { useWalletStore } from '@/store/walletStore';
 import { arcTestnet, BRIDGE_CHAINS, type BridgeChain } from '@/constants/chains';
-import { bridgeUsdcWithAppKit, getUsdcBridgeQuote, type BridgeQuote } from '@/lib/arcAppKit';
+import { bridgeUsdcWithAppKit, getBridgeStatus, getUsdcBridgeQuote, type BridgeQuote } from '@/lib/arcAppKit';
 import { loadPrivateKey } from '@/lib/wallet';
 import {
   sanitizeAmount,
@@ -168,11 +168,33 @@ export default function BridgeScreen() {
         amountUsdc: parseUsdc(amount),
       });
 
-      setTxHash(hash);
-      await notifyBridgeSubmitted(hash, params.returnInvoiceId);
-      setBridgeStatus('success');
-      setStep('done');
-      Toast.show({ type: 'success', text1: 'Bridge submitted', text2: shortenHash(hash) });
+      setTxHash(hash);
+
+      await notifyBridgeSubmitted(hash, params.returnInvoiceId);
+
+      const status = await getBridgeStatus(hash);
+
+      if (status.status === 'failed') {
+
+        throw new Error(status.message ?? 'Bridge failed.');
+
+      }
+
+      if (status.status === 'complete') {
+
+        setBridgeStatus('success');
+
+        setStep('done');
+
+        Toast.show({ type: 'success', text1: 'Bridge complete', text2: shortenHash(hash) });
+
+      } else {
+
+        setBridgeStatus('attesting');
+
+        Toast.show({ type: 'info', text1: 'Bridge submitted', text2: 'Waiting for Circle attestation.' });
+
+      }
     } catch (error: any) {
       const message = error?.shortMessage ?? error?.message ?? 'Bridge failed. Please try again.';
       setBridgeError(message);

@@ -71,7 +71,7 @@ export const useInsightsStore = create<InsightsState>((set) => ({
     const faucetCount  = flows.reduce((a, f) => a + f.tasks.filter((t) => t.type === 'faucet' && t.status === 'success').length, 0);
 
     const totalVolume  = txs.reduce((acc, tx) => acc + (parseFloat(tx.value) || 0), 0);
-    const chainsUsed   = [Number(process.env.EXPO_PUBLIC_ARC_CHAIN_ID ?? 5042002)];
+    const chainsUsed   = [5042002];
 
     const streakDays    = computeStreak(txs);
     const totalTxCount  = txs.length + bridgeCount + faucetCount;

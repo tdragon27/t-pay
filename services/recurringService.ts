@@ -3,6 +3,7 @@ import { type Hex } from 'viem';
 import { CONTRACT_ADDRESSES, INTERVAL_PRESETS, RECURRING_ABI, USDC_DECIMALS, isRecurringConfigured } from '@/constants/contracts';
 import { TOKEN_ADDRESSES } from '@/constants/chains';
 import { createArcWalletClient, ERC20_ABI, getPublicClient } from '@/lib/viemClient';
+import { waitForSuccessfulReceipt } from '@/lib/transactionReceipt';
 import { loadPrivateKey } from '@/lib/wallet';
 import { parseUsdc } from '@/utils/format';
 
@@ -191,7 +192,7 @@ class RecurringService {
       args: [contractAddress, requiredAllowance],
     });
 
-    await publicClient.waitForTransactionReceipt({ hash, confirmations: 1 });
+    await waitForSuccessfulReceipt(publicClient, hash);
   }
 
   private async latestSubscriptionId(payer: `0x${string}`) {
@@ -228,7 +229,7 @@ class RecurringService {
         ],
       });
 
-      await publicClient.waitForTransactionReceipt({ hash, confirmations: 1 });
+      await waitForSuccessfulReceipt(publicClient, hash);
       const subId = await this.latestSubscriptionId(account.address);
       return { success: true, data: { subId }, txHash: hash };
     } catch (error: any) {
@@ -248,7 +249,7 @@ class RecurringService {
         args: [BigInt(subId)],
       });
 
-      await publicClient.waitForTransactionReceipt({ hash, confirmations: 1 });
+      await waitForSuccessfulReceipt(publicClient, hash);
       return { success: true, data: undefined, txHash: hash };
     } catch (error: any) {
       return { success: false, error: error?.shortMessage ?? error?.message ?? 'Failed to cancel subscription.' };
@@ -267,7 +268,7 @@ class RecurringService {
         args: [BigInt(subId)],
       });
 
-      await publicClient.waitForTransactionReceipt({ hash, confirmations: 1 });
+      await waitForSuccessfulReceipt(publicClient, hash);
       return { success: true, data: undefined, txHash: hash };
     } catch (error: any) {
       return { success: false, error: error?.shortMessage ?? error?.message ?? 'Failed to pause subscription.' };
@@ -286,7 +287,7 @@ class RecurringService {
         args: [BigInt(subId)],
       });
 
-      await publicClient.waitForTransactionReceipt({ hash, confirmations: 1 });
+      await waitForSuccessfulReceipt(publicClient, hash);
       return { success: true, data: undefined, txHash: hash };
     } catch (error: any) {
       return { success: false, error: error?.shortMessage ?? error?.message ?? 'Failed to resume subscription.' };
@@ -314,7 +315,7 @@ class RecurringService {
         args: [BigInt(subId)],
       });
 
-      await publicClient.waitForTransactionReceipt({ hash, confirmations: 1 });
+      await waitForSuccessfulReceipt(publicClient, hash);
       return { success: true, data: undefined, txHash: hash };
     } catch (error: any) {
       return { success: false, error: error?.shortMessage ?? error?.message ?? 'Failed to trigger payment.' };

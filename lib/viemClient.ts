@@ -16,23 +16,12 @@ import {
   type Hex,
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { arcTestnet } from '@/constants/chains';
+import { arcTestnet, resolveArcTestnetRpcUrl } from '@/constants/chains';
 
 // ─── RPC URL with fallback ────────────────────────────────────────────────────
 
-const PRIMARY_RPC   = process.env.EXPO_PUBLIC_ARC_RPC_URL ?? '';
-const FALLBACK_RPCS = [
-  'https://rpc.testnet.arc.network',
-  'https://arc-testnet.rpc.thirdweb.com',
-];
-
 function getArcRpc(): string {
-  if (PRIMARY_RPC && PRIMARY_RPC.startsWith('http')) return PRIMARY_RPC;
-  console.warn(
-    '[viemClient] EXPO_PUBLIC_ARC_RPC_URL is not set or invalid. ' +
-    `Falling back to: ${FALLBACK_RPCS[0]}`
-  );
-  return FALLBACK_RPCS[0];
+  return resolveArcTestnetRpcUrl(process.env.EXPO_PUBLIC_ARC_RPC_URL);
 }
 
 // ─── Singleton public client ──────────────────────────────────────────────────

@@ -24,7 +24,6 @@ import { safeBack } from '@/utils/navigation';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import Toast from 'react-native-toast-message';
 import Animated, {
@@ -258,12 +257,10 @@ export default function CreateWalletScreen() {
   }
 
   async function copyPhrase() {
-    await Clipboard.setStringAsync(mnemonic.join(' '));
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     Toast.show({
-      type:  'success',
-      text1: 'Copied to clipboard',
-      text2: 'Store this in a secure location — never share it.',
+      type:  'info',
+      text1: 'Clipboard copy is disabled',
+      text2: 'Write the recovery phrase down offline and keep it private.',
     });
   }
 
@@ -377,8 +374,8 @@ export default function CreateWalletScreen() {
             activeOpacity={0.8}
             hitSlop={{ top: 4, bottom: 4 }}
           >
-            <Ionicons name="copy-outline" size={17} color="#00D4FF" />
-            <Text style={styles.copyBtnText}>Copy to clipboard</Text>
+            <Ionicons name="shield-checkmark-outline" size={17} color="#00D4FF" />
+            <Text style={styles.copyBtnText}>Why copy is disabled</Text>
           </TouchableOpacity>
         )}
 

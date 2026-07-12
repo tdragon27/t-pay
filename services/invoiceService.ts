@@ -3,6 +3,7 @@ import { type Hex } from 'viem';
 import { CONTRACT_ADDRESSES, INVOICE_ABI, INVOICE_STATUS, USDC_DECIMALS, ZERO_ADDRESS, isInvoiceConfigured, type InvoiceStatus } from '@/constants/contracts';
 import { TOKEN_ADDRESSES } from '@/constants/chains';
 import { createArcWalletClient, ERC20_ABI, getPublicClient } from '@/lib/viemClient';
+import { waitForSuccessfulReceipt } from '@/lib/transactionReceipt';
 import { loadPrivateKey } from '@/lib/wallet';
 import { parseUsdc } from '@/utils/format';
 
@@ -113,7 +114,7 @@ class InvoiceService {
       args: [contractAddress, amountRaw],
     });
 
-    await publicClient.waitForTransactionReceipt({ hash, confirmations: 1 });
+    await waitForSuccessfulReceipt(publicClient, hash);
   }
 
   private async saveMeta(metadataCid: string, meta: InvoiceMeta) {
@@ -313,7 +314,7 @@ class InvoiceService {
         args: [payer, amountRaw, BigInt(dueAt), params.invoiceNumber.trim(), metadataCid],
       });
 
-      await publicClient.waitForTransactionReceipt({ hash, confirmations: 1 });
+      await waitForSuccessfulReceipt(publicClient, hash);
       const invoiceId = await this.latestInvoiceId(account.address);
 
       if (invoiceId >= 0) {
@@ -358,7 +359,7 @@ class InvoiceService {
         args: [BigInt(id)],
       });
 
-      await publicClient.waitForTransactionReceipt({ hash, confirmations: 1 });
+      await waitForSuccessfulReceipt(publicClient, hash);
       const next = await this.fetchInvoice(id);
       if (next) await this.upsertInvoiceIndex([next]);
       return { success: true, data: undefined, txHash: hash };
@@ -379,7 +380,7 @@ class InvoiceService {
         args: [BigInt(id)],
       });
 
-      await publicClient.waitForTransactionReceipt({ hash, confirmations: 1 });
+      await waitForSuccessfulReceipt(publicClient, hash);
       const next = await this.fetchInvoice(id);
       if (next) await this.upsertInvoiceIndex([next]);
       return { success: true, data: undefined, txHash: hash };
@@ -400,7 +401,7 @@ class InvoiceService {
         args: [BigInt(id)],
       });
 
-      await publicClient.waitForTransactionReceipt({ hash, confirmations: 1 });
+      await waitForSuccessfulReceipt(publicClient, hash);
       const next = await this.fetchInvoice(id);
       if (next) await this.upsertInvoiceIndex([next]);
       return { success: true, data: undefined, txHash: hash };

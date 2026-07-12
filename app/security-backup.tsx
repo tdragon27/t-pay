@@ -1,29 +1,23 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
-import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
 import { safeBack } from '@/utils/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
 import { Colors, FontSize, Spacing } from '@/constants/theme';
-import { loadPrivateKey, loadSeedPhrase } from '@/lib/wallet';
+import { loadSeedPhrase } from '@/lib/wallet';
 import { notifySecurityEvent } from '@/services/notificationService';
-import { ensureCriticalAuth } from '@/services/securityService';
 
 const BACKUP_CONFIRMED_KEY = 'tpay_backup_confirmed_v1';
-const EXPORT_CONFIRM_TEXT = 'I UNDERSTAND';
 
 export default function SecurityBackupScreen() {
   const router = useRouter();
   const [hasSeed, setHasSeed] = useState(false);
   const [backupConfirmed, setBackupConfirmed] = useState(false);
-  const [exportPhrase, setExportPhrase] = useState('');
   const [loading, setLoading] = useState(true);
 
   async function hydrate() {
@@ -49,41 +43,6 @@ export default function SecurityBackupScreen() {
     setBackupConfirmed(true);
     await notifySecurityEvent('Backup confirmed', 'Seed phrase backup checklist was marked complete.');
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  }
-
-  async function handleCopyPrivateKey() {
-    if (exportPhrase.trim() !== EXPORT_CONFIRM_TEXT) {
-      Alert.alert('Confirmation required', `Type ${EXPORT_CONFIRM_TEXT} before exporting your private key.`);
-      return;
-    }
-
-    Alert.alert(
-      'Export private key?',
-      'Anyone with this key can fully control this wallet. Only export if you know where you will store it safely.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Export',
-          style: 'destructive',
-          onPress: async () => {
-            const unlocked = await ensureCriticalAuth();
-            if (!unlocked) {
-              Alert.alert('Unlock required', 'PIN or biometric unlock is required before exporting a private key.');
-              return;
-            }
-            const key = await loadPrivateKey();
-            if (!key) {
-              Alert.alert('No key found', 'Create or import a wallet first.');
-              return;
-            }
-            await Clipboard.setStringAsync(key);
-            await notifySecurityEvent('Private key exported', 'Private key was copied to clipboard on this device.');
-            Toast.show({ type: 'info', text1: 'Private key copied', text2: 'Clear your clipboard after storing it safely.' });
-            setExportPhrase('');
-          },
-        },
-      ],
-    );
   }
 
   const checklist = [
@@ -127,10 +86,8 @@ export default function SecurityBackupScreen() {
         </Card>
 
         <Card style={styles.cardGap}>
-          <Text style={styles.sectionTitle}>Export private key</Text>
-          <Text style={styles.bodyText}>Type {EXPORT_CONFIRM_TEXT} to unlock the export button. The key is copied to clipboard only after a final confirmation dialog.</Text>
-          <Input label="Confirmation" value={exportPhrase} onChangeText={setExportPhrase} placeholder={EXPORT_CONFIRM_TEXT} autoCapitalize="characters" />
-          <Button label="Copy Private Key" variant="secondary" disabled={exportPhrase.trim() !== EXPORT_CONFIRM_TEXT} onPress={handleCopyPrivateKey} />
+          <Text style={styles.sectionTitle}>Private key export</Text>
+          <Text style={styles.bodyText}>Clipboard export is disabled to reduce accidental key exposure. Use the recovery phrase backup above and store it offline.</Text>
         </Card>
       </ScrollView>
     </SafeAreaView>

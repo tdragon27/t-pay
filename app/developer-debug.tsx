@@ -101,7 +101,7 @@ export default function DeveloperDebugScreen() {
       'Developer Debug - Testnet Only',
       'Secrets: redacted. No seed phrase, private key, or API key is included.',
       'Wallet: ' + (address ? shortenAddress(address, 8) : 'not connected'),
-      'Chain ID: ' + String(Number(process.env.EXPO_PUBLIC_ARC_CHAIN_ID || arcTestnet.id)),
+      'Chain ID: ' + String(arcTestnet.id),
       'RPC: ' + (rpcHealth?.status || 'unchecked') + ' - ' + (rpcHealth?.message || ''),
       'Supabase: ' + (supabaseStatus.configured ? 'configured' : 'missing'),
       'App Kit: ' + (appKitConfigured ? 'configured' : 'missing'),
@@ -141,7 +141,7 @@ export default function DeveloperDebugScreen() {
         <Text style={styles.section}>Environment</Text>
         <Card>
           <DebugRow label="Wallet" value={address ? shortenAddress(address, 8) : 'Not connected'} />
-          <DebugRow label="Chain ID" value={String(Number(process.env.EXPO_PUBLIC_ARC_CHAIN_ID || arcTestnet.id))} />
+          <DebugRow label="Chain ID" value={String(arcTestnet.id)} />
           <DebugRow label="Arc Testnet" value="Enabled - testnet assets only" />
           <DebugRow label="RPC" value={(rpcHealth?.status || 'unchecked') + ' - ' + (rpcHealth?.message || 'Not checked')} />
           <View style={styles.statusRow}>

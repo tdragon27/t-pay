@@ -90,13 +90,6 @@ function SeedPhraseModal({ visible, onClose }: { visible: boolean; onClose: () =
     }
   }
 
-  async function handleCopy() {
-    if (!phrase) return;
-    await Clipboard.setStringAsync(phrase.join(' '));
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    Toast.show({ type: 'success', text1: 'Seed phrase copied', text2: 'Store it somewhere safe!' });
-  }
-
   function handleClose() {
     setPhrase(null);
     setRevealed(false);
@@ -180,16 +173,10 @@ function SeedPhraseModal({ visible, onClose }: { visible: boolean; onClose: () =
                 ))}
               </View>
 
-              {/* Copy button */}
-              <TouchableOpacity
-                style={styles.copyPhraseBtn}
-                onPress={handleCopy}
-                activeOpacity={0.8}
-                hitSlop={{ top: 8, bottom: 8 }}
-              >
-                <Ionicons name="copy-outline" size={16} color="#9090B0" />
-                <Text style={styles.copyPhraseBtnText}>Copy all words</Text>
-              </TouchableOpacity>
+              <View style={styles.copyPhraseBtn}>
+                <Ionicons name="shield-checkmark-outline" size={16} color="#9090B0" />
+                <Text style={styles.copyPhraseBtnText}>Clipboard copy is disabled. Write the phrase down offline.</Text>
+              </View>
 
               {/* Hide again */}
               <TouchableOpacity

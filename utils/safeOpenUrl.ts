@@ -1,7 +1,8 @@
-﻿import * as Clipboard from 'expo-clipboard';
+import * as Clipboard from 'expo-clipboard';
 import { Linking } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { ARC_TESTNET_DEFAULTS } from '@/constants/chains';
+import { isSafeOpenUrl, redactUrlForLog } from '@/utils/tpayLogic';
 
 function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/, '');
@@ -19,11 +20,20 @@ export async function safeOpenUrl(url?: string | null, label = 'Link'): Promise<
     return false;
   }
 
+  if (!isSafeOpenUrl(nextUrl)) {
+    Toast.show({
+      type: 'error',
+      text1: `Could not open ${label}`,
+      text2: 'Unsupported or unsafe link.',
+    });
+    return false;
+  }
+
   try {
     await Linking.openURL(nextUrl);
     return true;
   } catch (error) {
-    console.warn('[safeOpenUrl] Failed to open URL, copied instead:', nextUrl, error);
+    console.warn('[safeOpenUrl] Failed to open safe URL:', redactUrlForLog(nextUrl), error instanceof Error ? error.message : 'unknown error');
     try {
       await Clipboard.setStringAsync(nextUrl);
       Toast.show({
@@ -35,7 +45,7 @@ export async function safeOpenUrl(url?: string | null, label = 'Link'): Promise<
       Toast.show({
         type: 'error',
         text1: `Could not open ${label}`,
-        text2: nextUrl,
+        text2: 'Please try again from the details screen.',
       });
     }
     return false;

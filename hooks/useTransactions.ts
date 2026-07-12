@@ -135,7 +135,7 @@ export function useTransactions() {
           (faucet) =>
             faucet.status === 'success' &&
             Boolean(faucet.txHash) &&
-            faucet.chainId === Number(process.env.EXPO_PUBLIC_ARC_CHAIN_ID ?? 5042002),
+            faucet.chainId === 5042002,
         )
         .map((faucet) => ({
           hash: faucet.txHash!,

@@ -4,6 +4,7 @@ import * as ExpoLinking from 'expo-linking';
 import { formatUnits, keccak256, parseUnits, stringToHex, toHex, type Hex } from 'viem';
 import { ARC_CONTRACTS, FX_TOKENS, type FxExecutionMode, type FxTokenSymbol } from '@/constants/chains';
 import { createArcWalletClient, ERC20_ABI, getPublicClient } from '@/lib/viemClient';
+import { waitForSuccessfulReceipt } from '@/lib/transactionReceipt';
 import { loadPrivateKey } from '@/lib/wallet';
 import { executeFxSwap, getFxQuote, type FxQuote } from '@/services/fxService';
 import { buildSmartQrLink } from '@/services/paymentRequestService';
@@ -416,7 +417,7 @@ export async function createMerchantInvoice(input: CreateMerchantInvoiceInput): 
       ],
     });
 
-    const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}`, confirmations: 1 });
+    const receipt = await waitForSuccessfulReceipt(publicClient, txHash as `0x${string}`);
     invoice = {
       ...invoice,
       txHash,
@@ -471,7 +472,7 @@ export async function cancelMerchantInvoice(id: string): Promise<MerchantInvoice
       args: [invoice.contractInvoiceId],
     });
 
-    const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}`, confirmations: 1 });
+    const receipt = await waitForSuccessfulReceipt(publicClient, txHash as `0x${string}`);
     const backendInvoice = await waitForBackendInvoice(id, 4, 1_000);
     const nextInvoice = normalizeInvoice({
       ...invoice,
@@ -578,7 +579,7 @@ export async function payMerchantInvoice(
         args: [ARC_CONTRACTS.MERCHANT_SETTLEMENT, amountRaw],
       });
 
-      await publicClient.waitForTransactionReceipt({ hash: approvalHash, confirmations: 1 });
+      await waitForSuccessfulReceipt(publicClient, approvalHash);
     }
 
     txHash = await walletClient.writeContract({
@@ -604,7 +605,7 @@ export async function payMerchantInvoice(
   }
 
   if (mode !== 'local') {
-    const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}`, confirmations: 1 });
+    const receipt = await waitForSuccessfulReceipt(publicClient, txHash as `0x${string}`);
     blockTimestamp = await resolveBlockTimestamp(receipt.blockNumber);
   }
 

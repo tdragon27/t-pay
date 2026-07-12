@@ -1,6 +1,7 @@
 ﻿import { formatUnits, type Hex } from 'viem';
 import { ARC_CONTRACTS, TOKEN_ADDRESSES } from '@/constants/chains';
-import { createArcWalletClient, ERC20_ABI, getPublicClient } from '@/lib/viemClient';
+import { createArcWalletClient, ERC20_ABI, getPublicClient } from '@/lib/viemClient';
+import { waitForSuccessfulReceipt } from '@/lib/transactionReceipt';
 import { loadPrivateKey } from '@/lib/wallet';
 import { formatUsdc, parseUsdc } from '@/utils/format';
 
@@ -306,7 +307,7 @@ export async function createPredictionMarket(input: CreateMarketInput): Promise<
     args: [question, input.category.trim() || 'General', BigInt(Math.floor(input.closeTime / 1000)), input.metadataURI ?? ''],
   });
 
-  await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}`, confirmations: 1 });
+  await waitForSuccessfulReceipt(publicClient, txHash as `0x${string}`);
   const count = await publicClient.readContract({ address, abi: PREDICTION_MARKET_ABI, functionName: 'marketCount' }) as bigint;
   return { txHash, marketId: count.toString() };
 }
@@ -339,7 +340,7 @@ export async function placePredictionBet(input: { marketId: string; outcome: Mar
       functionName: 'approve',
       args: [address, amountRaw],
     });
-    await publicClient.waitForTransactionReceipt({ hash: approvalHash, confirmations: 1 });
+    await waitForSuccessfulReceipt(publicClient, approvalHash);
   }
 
   const txHash = await walletClient.writeContract({
@@ -351,7 +352,7 @@ export async function placePredictionBet(input: { marketId: string; outcome: Mar
     args: [BigInt(input.marketId), outcomeToCode(input.outcome), amountRaw],
   });
 
-  await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}`, confirmations: 1 });
+  await waitForSuccessfulReceipt(publicClient, txHash as `0x${string}`);
   return txHash;
 }
 
@@ -370,7 +371,7 @@ export async function resolvePredictionMarket(marketId: string, outcome: MarketO
     functionName: 'resolveMarket',
     args: [BigInt(marketId), outcomeToCode(outcome)],
   });
-  await getPublicClient().waitForTransactionReceipt({ hash: txHash as `0x${string}`, confirmations: 1 });
+  await waitForSuccessfulReceipt(getPublicClient(), txHash as `0x${string}`);
   return txHash;
 }
 
@@ -389,7 +390,7 @@ export async function claimPredictionMarket(marketId: string): Promise<string> {
     functionName: 'claim',
     args: [BigInt(marketId)],
   });
-  await getPublicClient().waitForTransactionReceipt({ hash: txHash as `0x${string}`, confirmations: 1 });
+  await waitForSuccessfulReceipt(getPublicClient(), txHash as `0x${string}`);
   return txHash;
 }
 
@@ -408,7 +409,7 @@ export async function cancelPredictionMarket(marketId: string): Promise<string> 
     functionName: 'cancelMarket',
     args: [BigInt(marketId)],
   });
-  await getPublicClient().waitForTransactionReceipt({ hash: txHash as `0x${string}`, confirmations: 1 });
+  await waitForSuccessfulReceipt(getPublicClient(), txHash as `0x${string}`);
   return txHash;
 }
 export function estimateYesNoPrice(market: TPayMarket) {

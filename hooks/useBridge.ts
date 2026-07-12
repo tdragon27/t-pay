@@ -79,7 +79,7 @@ export function useBridge() {
           throw new Error(bridgeStatus.message ?? 'Bridge failed');
         }
 
-        setStatus('success');
+        setStatus(bridgeStatus.status === 'complete' ? 'success' : 'attesting');
         return { txHash: hash };
       } catch (err: any) {
         setError(err?.message ?? 'Bridge failed');

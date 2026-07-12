@@ -22,6 +22,26 @@ export const ARC_TESTNET_DEFAULTS = {
   FAUCET_URL: 'https://faucet.circle.com',
 } as const;
 
+export function resolveArcTestnetRpcUrl(value?: string) {
+  if (!value) return ARC_TESTNET_DEFAULTS.RPC_URL;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' ? url.toString().replace(/\/$/, '') : ARC_TESTNET_DEFAULTS.RPC_URL;
+  } catch {
+    return ARC_TESTNET_DEFAULTS.RPC_URL;
+  }
+}
+
+export function resolveArcTestnetWebSocketUrl(value?: string) {
+  if (!value) return ARC_TESTNET_DEFAULTS.WS_URL;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'wss:' ? url.toString().replace(/\/$/, '') : ARC_TESTNET_DEFAULTS.WS_URL;
+  } catch {
+    return ARC_TESTNET_DEFAULTS.WS_URL;
+  }
+}
+
 export const ARC_OFFICIAL_CONTRACTS = {
   USDC_ERC20: '0x3600000000000000000000000000000000000000',
   EURC_ERC20: '0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a',
@@ -36,7 +56,7 @@ export const ARC_OFFICIAL_CONTRACTS = {
 } as const;
 
 export const arcTestnet = defineChain({
-  id: Number(process.env.EXPO_PUBLIC_ARC_CHAIN_ID ?? ARC_TESTNET_DEFAULTS.CHAIN_ID),
+  id: ARC_TESTNET_DEFAULTS.CHAIN_ID,
   name: 'Arc Testnet',
   nativeCurrency: {
     name: 'USD Coin',
@@ -45,8 +65,8 @@ export const arcTestnet = defineChain({
   },
   rpcUrls: {
     default: {
-      http: [process.env.EXPO_PUBLIC_ARC_RPC_URL ?? ARC_TESTNET_DEFAULTS.RPC_URL],
-      webSocket: [process.env.EXPO_PUBLIC_ARC_WS_URL ?? ARC_TESTNET_DEFAULTS.WS_URL],
+      http: [resolveArcTestnetRpcUrl(process.env.EXPO_PUBLIC_ARC_RPC_URL)],
+      webSocket: [resolveArcTestnetWebSocketUrl(process.env.EXPO_PUBLIC_ARC_WS_URL)],
     },
   },
   blockExplorers: {

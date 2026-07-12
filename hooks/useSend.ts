@@ -1,9 +1,9 @@
-﻿// hooks/useSend.ts - handles Arc Testnet ERC-20 sends for supported T Pay assets
+// hooks/useSend.ts - handles Arc Testnet ERC-20 sends for supported T Pay assets
 
 import { useState, useCallback } from 'react';
 import { isAddress, parseUnits, type Hex } from 'viem';
 import { createArcWalletClient, getPublicClient, ERC20_ABI } from '@/lib/viemClient';
-import { sendUsdcWithAppKit } from '@/lib/arcAppKit';
+import { waitForSuccessfulReceipt } from '@/lib/transactionReceipt';
 import { ARC_TESTNET_DEFAULTS } from '@/constants/chains';
 import { getArcTestnetToken, type SupportedArcTokenSymbol } from '@/constants/tokens';
 import { loadPrivateKey } from '@/lib/wallet';
@@ -80,11 +80,12 @@ export function useSend() {
         tokenSymbol,
         receiverWallet: toAddress as `0x${string}`,
         senderWallet: account.address,
-        chainId: Number(process.env.EXPO_PUBLIC_ARC_CHAIN_ID ?? ARC_TESTNET_DEFAULTS.CHAIN_ID),
+        chainId: ARC_TESTNET_DEFAULTS.CHAIN_ID,
         note: `Arc Testnet ${tokenSymbol} transfer`,
         label: `Send ${normalizedAmount} ${tokenSymbol}`,
       });
       intentId = intent.id;
+      await updatePaymentIntent(intentId, { status: 'awaiting_user_confirmation' });
 
       const balance = await publicClient.readContract({
         address: token.contractAddress,
@@ -106,31 +107,21 @@ export function useSend() {
       });
 
       setStatus('broadcasting');
-      if (tokenSymbol === 'USDC') {
-        try {
-          hash = (await sendUsdcWithAppKit(pk, toAddress, normalizedAmount)) as Hex;
-        } catch {
-          hash = await walletClient.writeContract({
-            account,
-            chain: null,
-            address: token.contractAddress,
-            abi: ERC20_ABI,
-            functionName: 'transfer',
-            args: [toAddress as `0x${string}`, amount],
-          });
-        }
-      } else {
-        hash = await walletClient.writeContract({
-          account,
-          chain: null,
-          address: token.contractAddress,
-          abi: ERC20_ABI,
-          functionName: 'transfer',
-          args: [toAddress as `0x${string}`, amount],
-        });
-      }
+      await updatePaymentIntent(intentId, { status: 'submitting' });
+      // Never retry through a second provider after an ambiguous broadcast error.
+      // One deterministic submission prevents accidental duplicate payments.
+      hash = await walletClient.writeContract({
+        account,
+        chain: null,
+        address: token.contractAddress,
+        abi: ERC20_ABI,
+        functionName: 'transfer',
+        args: [toAddress as `0x${string}`, amount],
+      });
 
       setTxHash(hash);
+      await updatePaymentIntent(intentId, { status: 'submitted', txHash: hash });
+
       await addPendingTx({
         txHash: hash,
         type: 'send',
@@ -156,7 +147,7 @@ export function useSend() {
       });
 
       setStatus('confirming');
-      await publicClient.waitForTransactionReceipt({ hash, confirmations: 1 });
+      await waitForSuccessfulReceipt(publicClient, hash);
       await markPendingTx(hash, 'confirmed');
       await updatePaymentIntent(intentId, { status: 'confirmed', txHash: hash, paidAt: Date.now() });
       await recordActivity({

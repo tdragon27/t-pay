@@ -2,14 +2,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { type Hex } from 'viem';
 import { createArcWalletClient, getPublicClient, ERC20_ABI } from '@/lib/viemClient';
-import { TOKEN_ADDRESSES, type BridgeChain } from '@/constants/chains';
-import { initiateBridge } from '@/lib/arcAppKit';
+import { ARC_TESTNET_DEFAULTS, TOKEN_ADDRESSES, type BridgeChain } from '@/constants/chains';
+import { getBridgeStatus, initiateBridge } from '@/lib/arcAppKit';
 import { loadPrivateKey } from '@/lib/wallet';
 import { parseUsdc, formatUsdc } from '@/utils/format';
 
 
 export type BridgeStatus =
-  | 'idle' | 'signing' | 'burning' | 'attesting' | 'minting' | 'success' | 'failed';
+  | 'idle' | 'signing' | 'burning' | 'attesting' | 'minting' | 'success' | 'failed' | 'recovery_required';
 
 export interface BridgeJob {
   id:           string;
@@ -101,7 +101,7 @@ class BridgeService {
   ): Promise<BridgeJob> {
     let job: BridgeJob = {
       id:          makeJobId(),
-      fromChainId: Number(process.env.EXPO_PUBLIC_ARC_CHAIN_ID ?? 5042002),
+      fromChainId: ARC_TESTNET_DEFAULTS.CHAIN_ID,
       toChain,
       amount,
       destAddress,
@@ -117,10 +117,10 @@ class BridgeService {
     let timedOut = false;
     const timeoutHandle = setTimeout(async () => {
       timedOut = true;
-      if (job.status !== 'success' && job.status !== 'failed') {
+      if (job.status !== 'success' && job.status !== 'failed' && job.status !== 'recovery_required') {
         job = await this.update(job, {
-          status: 'failed',
-          error:  `Bridge timed out after ${BRIDGE_TIMEOUT_MS / 1000}s. Please retry.`,
+          status: 'recovery_required',
+          error:  'Bridge submission is unresolved. Check the source transaction before taking another action.',
         });
       }
     }, BRIDGE_TIMEOUT_MS);
@@ -155,11 +155,15 @@ class BridgeService {
 
       job = await this.update(job, { status: 'burning' });
       const burnHash = await initiateBridge(pk, toChain.id, destAddress, amountBig);
+      job = await this.update(job, { burnTxHash: burnHash, status: 'attesting' });
       if (timedOut) return job;
 
+      const bridgeStatus = await getBridgeStatus(burnHash);
+      if (bridgeStatus.status === 'failed') {
+        throw new Error(bridgeStatus.message ?? 'Bridge failed.');
+      }
       job = await this.update(job, {
-        burnTxHash: burnHash,
-        status: 'success',
+        status: bridgeStatus.status === 'complete' ? 'success' : 'attesting',
       });
       return job;
 
@@ -177,7 +181,7 @@ class BridgeService {
   async retryJob(jobId: string, onStatus?: BridgeStatusListener): Promise<BridgeJob | null> {
     const jobs = await loadJobs();
     const job  = jobs.find((j) => j.id === jobId);
-    if (!job || job.status !== 'failed') return null;
+    if (!job || job.status !== 'failed' || job.burnTxHash) return null;
     return this.bridgeUSDC(job.toChain, job.amount, job.destAddress, onStatus);
   }
 }
