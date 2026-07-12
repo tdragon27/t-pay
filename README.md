@@ -154,6 +154,9 @@ After deploying testnet contracts, copy the deployed addresses into the root `.e
 - `docs/DEMO_SCRIPT.md` - step-by-step demo flow for videos and grant review.
 - `docs/CIRCLE_ARC_GRANT_NOTES.md` - Circle/Arc grant positioning and readiness notes.
 - `docs/TESTNET_VALIDATION_CHECKLIST.md` - manual test checklist before sharing a build.
+- `docs/PRODUCTION_READINESS_BASELINE.md` - verified pre-change engineering baseline.
+- `docs/SECURITY_AND_CORRECTNESS_AUDIT.md` - findings, fixes, and residual risks.
+- `docs/PRODUCTION_READINESS_ROADMAP.md` - dependency-aware Sprints 2-6.
 - `BACKEND_API.md` - optional backend/indexer API notes.
 - `CHANGELOG.md` - completed upgrade notes.
 
@@ -174,7 +177,10 @@ docs/screenshots/developer-debug.png
 - Wallet secrets are stored locally with `expo-secure-store`.
 - Developer Debug and copied reports must never include seed phrases, private keys, API keys, or raw secret-like env values.
 - `EXPO_PUBLIC_*` values are bundled into the mobile app. Never place backend-only secrets there.
-- Private-key export is dangerous and should remain guarded by PIN/biometric confirmation.
+- Recovery phrases/private keys are never copied to the system clipboard. Record recovery phrases offline.
+- AutoFlow never signs Send or Bridge tasks; each asset-moving transaction requires its normal review screen.
+- A transaction hash is submission evidence, not confirmation. T Pay requires a successful receipt or provider completion state.
+- Supabase Split sync and the reference Next.js backend remain testnet/demo infrastructure; see the production-readiness audit before public deployment.
 - Testnet Community Picks are not production/legal-ready and should remain clearly labelled as testnet experiments.
 
 ## Useful Commands
@@ -184,6 +190,9 @@ npm run type-check
 npm run lint
 npm test
 npx expo export --platform ios --clear
+cd contracts
+npm run compile
+npm test
 ```
 
 ## Arc / Circle References Used In Implementation Notes

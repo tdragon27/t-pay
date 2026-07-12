@@ -20,6 +20,9 @@ Do not include real seed phrases, private keys, or production API keys in report
 - Never commit `.env`, `.env.local`, `contracts/.env`, seed phrases, deployer private keys, or backend API secrets.
 - Treat all `EXPO_PUBLIC_*` values as public because they are bundled into the mobile app.
 - Keep wallet export, send, swap, invoice cancel, and sensitive actions behind PIN or biometric confirmation.
+- Never copy a recovery phrase or private key to the system clipboard.
+- Never interpret a submitted transaction hash as confirmed success; require a successful receipt or provider completion state.
+- Every Send, Swap, Bridge, invoice payment, and contract write requires explicit transaction-specific user review.
 - Keep this project on Arc Testnet only until a separate production security review is complete.
 
 ## Current Limitations
@@ -27,3 +30,6 @@ Do not include real seed phrases, private keys, or production API keys in report
 - This repository is demo/testnet oriented.
 - Community Picks and payment experiments require legal, compliance, oracle, abuse-prevention, and jurisdiction review before any mainnet use.
 - Optional backend samples are not a hardened production backend by default.
+- Supabase anonymous Split Bill mutations are not authoritative proof of payment. A wallet-authenticated backend/indexer is required before production use.
+- The reference invoice backend is unauthenticated and in-memory; do not expose it publicly as a production service.
+- See `docs/SECURITY_AND_CORRECTNESS_AUDIT.md` for evidence, remediation status, and residual risks.

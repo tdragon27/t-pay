@@ -1,4 +1,4 @@
-﻿node_modules/
+node_modules/
 .expo/
 dist/
 web-build/
@@ -37,7 +37,7 @@ expo-env.d.ts
 
 # Accidental nested/scratch folders
 /arcpay/
-/{app}/
+/[{]app[}]/
 /null.txt
 
 # Hardhat / Solidity generated output
@@ -51,6 +51,4 @@ contracts/*.log
 # Local Codex / scratch copies
 .codex/
 _legacy-copy/
-/{app/
-/{app}/
-
+/[{]app/

@@ -1,4 +1,27 @@
-﻿# Changelog
+# Changelog
+
+## 2026-07-11 - Production Readiness Sprint 1
+
+### Security and correctness
+- Removed the ambiguous App Kit-to-Viem send fallback that could submit a duplicate USDC transfer.
+- Added successful-receipt enforcement across Send, invoices, merchant payments, recurring payments, and prediction-market writes.
+- Changed bridge handling so source submission enters attestation/recovery state and only provider completion reports success.
+- Disabled autonomous Send/Bridge execution in AutoFlow; transaction-specific review is required.
+- Fixed Arc Testnet chain ID to `5042002` and rejected plaintext/malformed Arc RPC configuration.
+- Replaced floating-point payment intent normalization with precision-preserving decimal strings.
+- Disabled recovery phrase and private-key clipboard copy.
+- Added URL scheme/length checks, redacted URL logs, and stricter payment request parsing.
+
+### Tests and CI
+- Expanded root behavior tests from 10 to 17.
+- CI now runs app type-check, lint, tests, iOS export smoke test, contract compile, and contract tests with read-only permissions and concurrency cancellation.
+- CI fails on new High/Critical production dependency advisories for both app and contracts.
+- Applied non-force dependency patches; root audit has no Critical/High advisories and contract audit reports zero vulnerabilities.
+
+### Documentation
+- Added production baseline, security/correctness audit, and Sprints 2-6 roadmap.
+- Documented unresolved Supabase authorization and reference-backend authentication blockers.
+
 
 ## 2026-05-17 - Full Improvement Sprint, phase 1
 

@@ -29,6 +29,10 @@ For mobile smoke testing, also run:
 
 ```bash
 npx expo export --platform ios --clear
+npx expo export --platform android --clear
+cd contracts
+npm run compile
+npm test
 ```
 
 ## Product Direction
@@ -42,3 +46,11 @@ T Pay should stay focused on social USDC payments on Arc Testnet:
 - Honest readiness states for Circle App Kit, swap, bridge, and unified balance.
 
 Do not add mainnet configuration or claim unsupported features are live.
+
+## Transaction Safety Rules
+
+- Do not retry a payment through another provider after an ambiguous broadcast error.
+- Do not mark a transaction successful until its receipt status is successful.
+- Do not mark a bridge complete until the bridge provider reports completion.
+- Do not add autonomous signing or background transaction execution.
+- Add a behavior-based regression test for every payment-state or parsing change.
