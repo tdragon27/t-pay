@@ -5,18 +5,45 @@ import {
   applyPaymentIntentTransition,
   buildMerchantPaymentIntentId,
   calculateSplitProgress,
+  canAutoExecuteWalletTask,
+  canSetPaymentIntentStatus,
   dedupeByActivityKey,
+  isSafeOpenUrl,
+  normalizePaymentAmount,
+  normalizePaymentIntentStatus,
+  redactUrlForLog,
   resolveBalanceFallback,
   splitPaymentGuard,
 } from '../utils/tpayLogic';
+import { resolveArcTestnetRpcUrl } from '../constants/chains';
+import { assertSuccessfulReceipt } from '../lib/transactionReceipt';
+import { MAX_PAYMENT_REQUEST_LENGTH, parsePaymentRequest } from '../services/paymentRequestService';
 import { decimalInputToBigInt, getDecimalInputError, normalizeDecimalInput, sanitizeDecimalInput } from '../utils/format';
 
-test('payment intent status transitions are terminal-safe', () => {
-  assert.equal(applyPaymentIntentTransition('draft', 'submit'), 'pending');
-  assert.equal(applyPaymentIntentTransition('pending', 'confirm'), 'confirmed');
+test('payment intent status transitions follow the signing lifecycle', () => {
+  assert.equal(
+    applyPaymentIntentTransition('draft', 'request_user_confirmation'),
+    'awaiting_user_confirmation',
+  );
+  assert.equal(applyPaymentIntentTransition('awaiting_user_confirmation', 'submit'), 'submitting');
+  assert.equal(applyPaymentIntentTransition('submitting', 'submitted'), 'submitted');
+  assert.equal(applyPaymentIntentTransition('submitted', 'confirm'), 'confirmed');
   assert.equal(applyPaymentIntentTransition('pending', 'fail'), 'failed');
   assert.equal(applyPaymentIntentTransition('draft', 'cancel'), 'cancelled');
-  assert.equal(applyPaymentIntentTransition('confirmed', 'fail'), 'confirmed');
+  assert.throws(
+    () => applyPaymentIntentTransition('confirmed', 'fail'),
+    /Illegal payment intent transition/,
+  );
+});
+
+test('payment intent persistence rejects status regressions and normalizes legacy values', () => {
+  assert.equal(canSetPaymentIntentStatus('submitted', 'pending'), true);
+  assert.equal(canSetPaymentIntentStatus('pending', 'confirmed'), true);
+  assert.equal(canSetPaymentIntentStatus('confirmed', 'pending'), false);
+  assert.equal(canSetPaymentIntentStatus('failed', 'submitted'), false);
+  assert.equal(normalizePaymentIntentStatus('paid'), 'confirmed');
+  assert.equal(normalizePaymentIntentStatus('processing'), 'pending');
+  assert.equal(normalizePaymentIntentStatus('unexpected-status'), 'draft');
 });
 
 test('activity de-dupes by lowercase txHash and keeps newest strongest status', () => {
@@ -115,6 +142,38 @@ test('cached balance fallback only activates when live source is unavailable', (
 
 
 
+test('external URL policy permits supported links and rejects unsafe schemes', () => {
+  assert.equal(isSafeOpenUrl('https://testnet.arcscan.app/tx/0xabc'), true);
+  assert.equal(isSafeOpenUrl('tpay://pay?invoiceId=invoice-1'), true);
+  assert.equal(isSafeOpenUrl('exp://192.168.1.2:8081'), true);
+  assert.equal(isSafeOpenUrl('javascript:alert(1)'), false);
+  assert.equal(isSafeOpenUrl('file:///private/wallet.json'), false);
+  assert.equal(isSafeOpenUrl(`https://example.com/${'a'.repeat(4096)}`), false);
+
+  const redacted = redactUrlForLog('https://example.com/pay?token=secret-value');
+  assert.equal(redacted.includes('secret-value'), false);
+  assert.match(redacted, /<redacted>/);
+});
+
+test('payment request parser rejects hostile schemes and oversized QR payloads', () => {
+  const wallet = '0x1111111111111111111111111111111111111111';
+  const request = parsePaymentRequest(`tpay://request?address=${wallet}&amount=1.25`);
+  assert.equal(request.kind, 'request');
+
+  const ethereumRequest = parsePaymentRequest(`ethereum:${wallet}?amount=1`);
+  assert.equal(ethereumRequest.kind, 'send');
+
+  const unsafeRequest = parsePaymentRequest(`javascript:${wallet}`);
+  assert.equal(unsafeRequest.kind, 'unknown');
+  assert.match(unsafeRequest.reason ?? '', /Unsupported payment link scheme/);
+
+  const oversizedRequest = parsePaymentRequest('x'.repeat(MAX_PAYMENT_REQUEST_LENGTH + 1));
+  assert.equal(oversizedRequest.kind, 'unknown');
+  assert.match(oversizedRequest.reason ?? '', /too large/);
+
+  assert.equal(parsePaymentRequest('{not-valid-json').kind, 'unknown');
+});
+
 test('cirBTC decimal input preserves temporary typing states', () => {
   assert.equal(sanitizeDecimalInput('0', 8), '0');
   assert.equal(sanitizeDecimalInput('0.', 8), '0.');
@@ -143,4 +202,31 @@ test('decimal normalize handles iOS comma and thousands comma', () => {
   assert.equal(normalizeDecimalInput('0,000127'), '0.000127');
   assert.equal(normalizeDecimalInput('58,542.133512'), '58542.133512');
   assert.equal(decimalInputToBigInt('0,000001', 8)?.toString(), '100');
+});
+
+test('receipt success is required before marking a transaction confirmed', () => {
+  assert.equal(assertSuccessfulReceipt({ status: 'success' }).status, 'success');
+  assert.throws(
+    () => assertSuccessfulReceipt({ status: 'reverted' }),
+    /mined but reverted/,
+  );
+});
+
+test('AutoFlow cannot sign send or bridge tasks without individual review', () => {
+  assert.equal(canAutoExecuteWalletTask('faucet'), true);
+  assert.equal(canAutoExecuteWalletTask('send'), false);
+  assert.equal(canAutoExecuteWalletTask('bridge'), false);
+});
+
+test('Arc Testnet RPC resolver rejects plaintext and malformed endpoints', () => {
+  assert.equal(resolveArcTestnetRpcUrl('https://rpc.example.com/'), 'https://rpc.example.com');
+  assert.equal(resolveArcTestnetRpcUrl('http://rpc.example.com'), 'https://rpc.testnet.arc.network');
+  assert.equal(resolveArcTestnetRpcUrl('not-a-url'), 'https://rpc.testnet.arc.network');
+});
+
+test('payment intent amount normalization preserves token precision', () => {
+  assert.equal(normalizePaymentAmount('0.00000001'), '0.00000001');
+  assert.equal(normalizePaymentAmount('001.23000000'), '1.23');
+  assert.equal(normalizePaymentAmount('0,000127'), '0.000127');
+  assert.equal(normalizePaymentAmount('invalid'), '0');
 });
