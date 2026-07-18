@@ -1,40 +1,46 @@
 ﻿import React from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
-import { ARC_TESTNET_TOKENS, type SupportedArcTokenSymbol } from '@/constants/tokens';
+
+import { PressScale } from '@/components/ui/PressScale';
+import { Colors, FontFamily, FontSize, Radius } from '@/constants/theme';
 import type { UnifiedActivityItem } from '@/services/activityService';
-import type { ActivePaymentItem, ActivePaymentTone } from '@/utils/paymentDashboard';
+import type {
+  ActivePaymentItem,
+  ActivePaymentTone,
+} from '@/utils/paymentDashboard';
 import { shortenAddress, timeAgo } from '@/utils/format';
 import { safeOpenTx } from '@/utils/safeOpenUrl';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
-const ACTIVITY_STYLE: Record<UnifiedActivityItem['type'], { icon: IconName; color: string; label: string }> = {
-  send: { icon: 'arrow-up-circle-outline', color: '#6FA8FF', label: 'Sent' },
-  receive: { icon: 'arrow-down-circle-outline', color: '#19E6FF', label: 'Received' },
+const ACTIVITY_STYLE: Record<
+  UnifiedActivityItem['type'],
+  { icon: IconName; color: string; label: string }
+> = {
+  send: { icon: 'arrow-up-outline', color: '#6FA8FF', label: 'Sent' },
+  receive: { icon: 'arrow-down-outline', color: Colors.success, label: 'Received' },
   split_payment: { icon: 'people-outline', color: '#8B79FF', label: 'Split' },
   merchant_invoice: { icon: 'storefront-outline', color: '#6FA8FF', label: 'Invoice' },
-  fx_swap: { icon: 'repeat-outline', color: '#8B79FF', label: 'Swap' },
-  bridge: { icon: 'git-compare-outline', color: '#19E6FF', label: 'Bridge' },
+  fx_swap: { icon: 'swap-horizontal-outline', color: '#8B79FF', label: 'Swap' },
+  bridge: { icon: 'git-compare-outline', color: Colors.primary, label: 'Bridge' },
   passport: { icon: 'sparkles-outline', color: '#A8B1FF', label: 'Passport' },
-  request: { icon: 'receipt-outline', color: '#8EEBFF', label: 'Request' },
+  request: { icon: 'receipt-outline', color: Colors.primary, label: 'Request' },
+  batch: { icon: 'layers-outline', color: '#A8B1FF', label: 'Batch payout' },
 };
 
-const STABLECOIN_RAILS: Array<{ symbol: SupportedArcTokenSymbol; target?: SupportedArcTokenSymbol; label: string; actionLabel: string; accent: string }> = [
-  { symbol: 'USDC', target: 'EURC', label: 'Gas + payments', actionLabel: 'Open Swap', accent: ARC_TESTNET_TOKENS.USDC.accent },
-  { symbol: 'EURC', target: 'USDC', label: 'Euro rail', actionLabel: 'Open Swap', accent: ARC_TESTNET_TOKENS.EURC.accent },
-  { symbol: 'cirBTC', label: 'Bitcoin test asset', actionLabel: 'Receive', accent: ARC_TESTNET_TOKENS.cirBTC.accent },
-];
-
 function toneColor(tone: ActivePaymentTone) {
-  if (tone === 'success') return '#19E6FF';
-  if (tone === 'warning') return '#FFB547';
+  if (tone === 'success') return Colors.success;
+  if (tone === 'warning') return Colors.warning;
   if (tone === 'danger') return Colors.error;
   if (tone === 'muted') return Colors.text3;
-  return '#8EEBFF';
+  return Colors.primary;
 }
 
 function plainAmount(item: UnifiedActivityItem) {
@@ -58,20 +64,51 @@ function activityTitle(item: UnifiedActivityItem) {
   if (item.type === 'fx_swap') return amount ? `Swapped ${amount}` : 'Swap completed';
   if (item.type === 'bridge') return amount ? `Bridged ${amount}` : 'Bridge activity';
   if (item.type === 'passport') return item.label || 'Passport update';
+  if (item.type === 'batch') return amount ? `Batch paid ${amount}` : 'Batch payout';
   return item.label || 'Payment request';
 }
 
 function activityContext(item: UnifiedActivityItem) {
-  const address = item.counterparty?.startsWith('0x') ? shortenAddress(item.counterparty, 4) : item.counterparty;
+  const address = item.counterparty?.startsWith('0x')
+    ? shortenAddress(item.counterparty, 4)
+    : item.counterparty;
   if (item.direction === 'outgoing' && address) return `To ${address}`;
   if (item.direction === 'incoming' && address) return `From ${address}`;
   if (item.note) return item.note;
-  return item.sourceFeature === 'split' ? 'Split payment' : item.sourceFeature === 'merchant' ? 'Merchant payment' : item.label;
+  if (item.sourceFeature === 'split') return 'Split payment';
+  if (item.sourceFeature === 'merchant') return 'Business payment';
+  return item.label;
+}
+
+function SectionHeader({
+  title,
+  meta,
+  action,
+  onAction,
+}: {
+  title: string;
+  meta?: string;
+  action?: string;
+  onAction?: () => void;
+}) {
+  return (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.sectionHeaderRight}>
+        {meta ? <Text style={styles.sectionMeta}>{meta}</Text> : null}
+        {action && onAction ? (
+          <TouchableOpacity onPress={onAction} activeOpacity={0.72} hitSlop={8}>
+            <Text style={styles.sectionAction}>{action}</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+    </View>
+  );
 }
 
 function ActivePaymentCard({ item }: { item: ActivePaymentItem }) {
   const router = useRouter();
-  const chipColor = toneColor(item.tone);
+  const statusColor = toneColor(item.tone);
   const progress = Math.max(0, Math.min(100, item.progressPercent ?? 0));
 
   const handlePress = () => {
@@ -83,51 +120,68 @@ function ActivePaymentCard({ item }: { item: ActivePaymentItem }) {
   };
 
   return (
-    <TouchableOpacity style={styles.activeShadow} activeOpacity={0.82} onPress={handlePress}>
-      <LinearGradient colors={['rgba(255,255,255,0.075)', 'rgba(255,255,255,0.028)']} style={styles.activeCard}>
-        <View style={styles.cardGlow} />
-        <View style={styles.activeHeader}>
-          <View style={styles.activeTitleWrap}>
-            <LinearGradient colors={[`${item.accent}24`, 'rgba(255,255,255,0.03)']} style={styles.activeIcon}>
-              <Ionicons name={item.icon} size={18} color={item.accent} />
-            </LinearGradient>
-            <Text style={styles.activeTitle} numberOfLines={1}>{item.title}</Text>
+    <PressScale
+      style={styles.activeCardPress}
+      onPress={handlePress}
+      accessibilityRole="button"
+      accessibilityLabel={`${item.title}. ${item.amount}. ${item.status}`}
+    >
+      <View style={styles.activeCard}>
+        <View style={[styles.activeAccent, { backgroundColor: item.accent }]} />
+        <View style={styles.activeBody}>
+          <View style={styles.activeHeader}>
+            <View style={styles.activeTitleRow}>
+              <View style={[styles.activeIcon, { backgroundColor: `${item.accent}12` }]}>
+                <Ionicons name={item.icon} size={17} color={item.accent} />
+              </View>
+              <Text style={styles.activeTitle} numberOfLines={1}>
+                {item.title}
+              </Text>
+            </View>
+            <View style={[styles.statusChip, { backgroundColor: `${statusColor}12` }]}>
+              <Text style={[styles.statusText, { color: statusColor }]}>
+                {item.status}
+              </Text>
+            </View>
           </View>
-          <View style={[styles.chip, { backgroundColor: `${chipColor}15` }]}> 
-            <Text style={[styles.chipText, { color: chipColor }]}>{item.status}</Text>
+
+          <View style={styles.activeContent}>
+            <View style={styles.activeCopy}>
+              <Text style={styles.activeAmount}>{item.amount}</Text>
+              <Text style={styles.activeDetail} numberOfLines={1}>
+                {item.detail}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={Colors.text3} />
           </View>
+
+          {item.progressPercent !== undefined ? (
+            <View style={styles.progressTrack}>
+              <View
+                style={[
+                  styles.progressFill,
+                  { width: `${progress}%`, backgroundColor: item.accent },
+                ]}
+              />
+            </View>
+          ) : null}
+
+          <Text style={styles.timestamp}>{timeAgo(item.timestamp)}</Text>
         </View>
-
-        <Text style={styles.activeAmount}>{item.amount}</Text>
-        <Text style={styles.activeDetail} numberOfLines={2}>{item.detail}</Text>
-
-        {item.progressPercent !== undefined ? (
-          <View style={styles.progressTrack}>
-            <LinearGradient
-              colors={[item.accent, '#8EEBFF']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={[styles.progressFill, { width: `${progress}%` }]}
-            />
-          </View>
-        ) : null}
-
-        <View style={styles.cardFooter}>
-          <Text style={styles.cardTimestamp}>{timeAgo(item.timestamp)}</Text>
-          <View style={styles.ctaButton}>
-            <Text style={styles.ctaText}>{item.ctaLabel}</Text>
-            <Ionicons name="chevron-forward" size={14} color="#8EEBFF" />
-          </View>
-        </View>
-      </LinearGradient>
-    </TouchableOpacity>
+      </View>
+    </PressScale>
   );
 }
 
 function ActivityPreviewRow({ item }: { item: UnifiedActivityItem }) {
   const router = useRouter();
-  const cfg = ACTIVITY_STYLE[item.type] ?? ACTIVITY_STYLE.request;
-  const color = item.status === 'failed' ? Colors.error : item.status === 'pending' ? '#FFB547' : cfg.color;
+  const config = ACTIVITY_STYLE[item.type] ?? ACTIVITY_STYLE.request;
+  const color =
+    item.status === 'failed'
+      ? Colors.error
+      : item.status === 'pending'
+        ? Colors.warning
+        : config.color;
 
   const open = () => {
     if (item.txHash) {
@@ -138,219 +192,384 @@ function ActivityPreviewRow({ item }: { item: UnifiedActivityItem }) {
   };
 
   return (
-    <TouchableOpacity style={styles.activityPreview} onPress={open} activeOpacity={0.78}>
-      <LinearGradient colors={[`${color}20`, 'rgba(255,255,255,0.025)']} style={styles.activityIcon}>
-        <Ionicons name={cfg.icon} size={18} color={color} />
-      </LinearGradient>
-      <View style={styles.activityMeta}>
-        <Text style={styles.activityTitle} numberOfLines={1}>{activityTitle(item)}</Text>
-        <Text style={styles.activitySub} numberOfLines={1}>{activityContext(item)}</Text>
-        <Text style={styles.activityTime}>{timeAgo(item.timestamp)}</Text>
-      </View>
-      {item.status === 'pending' || item.status === 'failed' ? (
-        <View style={[styles.smallStatus, { backgroundColor: `${color}16` }]}> 
-          <Text style={[styles.smallStatusText, { color }]}>{item.status}</Text>
+    <PressScale
+      style={styles.activityRowPress}
+      onPress={open}
+      accessibilityRole="button"
+      accessibilityLabel={activityTitle(item)}
+    >
+      <View style={styles.activityRow}>
+        <View style={[styles.activityIcon, { backgroundColor: `${color}12` }]}>
+          <Ionicons name={config.icon} size={18} color={color} />
         </View>
-      ) : null}
-    </TouchableOpacity>
+        <View style={styles.activityMeta}>
+          <Text style={styles.activityTitle} numberOfLines={1}>
+            {activityTitle(item)}
+          </Text>
+          <Text style={styles.activitySub} numberOfLines={1}>
+            {activityContext(item)}
+          </Text>
+        </View>
+        <View style={styles.activityRight}>
+          <Text style={styles.activityTime}>{timeAgo(item.timestamp)}</Text>
+          {item.status === 'pending' || item.status === 'failed' ? (
+            <Text style={[styles.activityStatus, { color }]}>{item.status}</Text>
+          ) : null}
+        </View>
+      </View>
+    </PressScale>
   );
 }
 
-export function ActivePaymentsSection({ items, loading, error }: { items: ActivePaymentItem[]; loading?: boolean; error?: string | null }) {
+export function ActivePaymentsSection({
+  items,
+  loading,
+  error,
+}: {
+  items: ActivePaymentItem[];
+  loading?: boolean;
+  error?: string | null;
+}) {
   const router = useRouter();
+  const pulseMeta = loading ? 'Syncing' : items.length > 0 ? `${items.length} active` : 'All clear';
 
   return (
-    <View style={styles.sectionBlock}>
-      <View style={styles.sectionHeader}>
-        <View>
-          <Text style={styles.sectionTitle}>Active Payments</Text>
-          <Text style={styles.sectionSub}>Open splits, invoices, and pending sends</Text>
-        </View>
-        {loading ? <ActivityIndicator color={Colors.primary} /> : null}
-      </View>
+    <View style={styles.section}>
+      <SectionHeader title="Payment pulse" meta={pulseMeta} />
 
       {error ? (
-        <LinearGradient colors={['rgba(255,181,71,0.10)', 'rgba(255,255,255,0.025)']} style={styles.noticeCard}>
-          <Ionicons name="warning-outline" size={17} color="#FFB547" />
-          <Text style={styles.noticeText}>{error}</Text>
-        </LinearGradient>
+        <View style={styles.inlineNotice}>
+          <Ionicons name="warning-outline" size={17} color={Colors.warning} />
+          <Text style={styles.inlineNoticeText} numberOfLines={2}>
+            {error}
+          </Text>
+        </View>
       ) : null}
 
-      {!loading && items.length === 0 ? (
-        <LinearGradient colors={['rgba(25,230,255,0.085)', 'rgba(139,121,255,0.045)', 'rgba(255,255,255,0.025)']} style={styles.emptyCard}>
-          <View style={styles.emptyVisualWrap}>
-            <LinearGradient colors={['#19E6FF', '#2775CA']} style={styles.emptyCoin}>
-              <Ionicons name="trail-sign-outline" size={22} color="#061018" />
-            </LinearGradient>
+      {loading ? (
+        <View style={styles.skeletonCard} accessibilityLabel="Syncing payment status">
+          <View style={styles.skeletonIcon} />
+          <View style={styles.skeletonCopy}>
+            <View style={styles.skeletonTitle} />
+            <View style={styles.skeletonLine} />
           </View>
-          <View style={styles.emptyCopy}>
-            <Text style={styles.emptyTitle}>No active payments</Text>
-            <Text style={styles.emptyText}>Create a split bill, request assets, or send a payment.</Text>
+        </View>
+      ) : items.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <View style={styles.emptyTop}>
+            <View style={styles.emptyIcon}>
+              <Ionicons name="checkmark-done-outline" size={20} color={Colors.success} />
+            </View>
+            <View style={styles.emptyCopy}>
+              <Text style={styles.emptyTitle}>Nothing waiting</Text>
+              <Text style={styles.emptyText}>Request USDC or split a bill with friends.</Text>
+            </View>
           </View>
           <View style={styles.emptyActions}>
-            <TouchableOpacity style={styles.emptyButton} onPress={() => router.push('/split-bill' as any)} activeOpacity={0.78}>
-              <Text style={styles.emptyButtonText}>Create Split</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.emptyButtonSecondary} onPress={() => router.push('/smart-qr' as any)} activeOpacity={0.78}>
-              <Text style={styles.emptyButtonSecondaryText}>Request</Text>
-            </TouchableOpacity>
+            <PressScale
+              style={styles.emptyAction}
+              onPress={() => router.push('/smart-qr' as any)}
+              accessibilityRole="button"
+              accessibilityLabel="Request payment"
+            >
+              <View style={styles.emptyActionContent}>
+                <Ionicons name="arrow-down-outline" size={15} color={Colors.primary} />
+                <Text style={styles.emptyActionText}>Request</Text>
+              </View>
+            </PressScale>
+            <PressScale
+              style={styles.emptyAction}
+              onPress={() => router.push('/split-bill' as any)}
+              accessibilityRole="button"
+              accessibilityLabel="Create split bill"
+            >
+              <View style={styles.emptyActionContent}>
+                <Ionicons name="people-outline" size={15} color={Colors.primary} />
+                <Text style={styles.emptyActionText}>Split</Text>
+              </View>
+            </PressScale>
           </View>
-        </LinearGradient>
+        </View>
       ) : (
-        <View style={styles.cardStack}>
-          {items.map((item) => <ActivePaymentCard key={item.id} item={item} />)}
+        <View style={styles.stack}>
+          {items.map((item) => (
+            <ActivePaymentCard key={item.id} item={item} />
+          ))}
         </View>
       )}
     </View>
   );
 }
 
-export function LatestActivityPreview({ items, loading }: { items: UnifiedActivityItem[]; loading?: boolean }) {
+export function LatestActivityPreview({
+  items,
+  loading,
+}: {
+  items: UnifiedActivityItem[];
+  loading?: boolean;
+}) {
   const router = useRouter();
   const latest = items.slice(0, 1);
 
   return (
-    <View style={styles.sectionBlockCompact}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Latest Activity</Text>
-        <TouchableOpacity onPress={() => router.push('/history' as any)} activeOpacity={0.78}>
-          <Text style={styles.viewAllText}>View full history</Text>
-        </TouchableOpacity>
-      </View>
+    <View style={styles.section}>
+      <SectionHeader
+        title="Latest Activity"
+        action="View all"
+        onAction={() => router.push('/history' as any)}
+      />
 
       {loading ? (
-        <LinearGradient colors={['rgba(255,255,255,0.07)', 'rgba(255,255,255,0.025)']} style={[styles.panelCard, styles.loadingCard]}>
-          <ActivityIndicator color={Colors.primary} />
-        </LinearGradient>
+        <View style={styles.skeletonCard} accessibilityLabel="Loading activity">
+          <View style={styles.skeletonIcon} />
+          <View style={styles.skeletonCopy}>
+            <View style={styles.skeletonTitle} />
+            <View style={styles.skeletonLine} />
+          </View>
+        </View>
       ) : latest.length === 0 ? (
-        <LinearGradient colors={['rgba(255,255,255,0.055)', 'rgba(255,255,255,0.02)']} style={styles.panelCard}>
-          <Text style={styles.emptyCompactTitle}>No activity yet</Text>
-          <Text style={styles.emptyCompactText}>Your first payment will appear here.</Text>
-        </LinearGradient>
+        <View style={styles.activityEmpty}>
+          <Ionicons name="receipt-outline" size={19} color={Colors.text3} />
+          <Text style={styles.activityEmptyText}>
+            Your first confirmed payment will appear here.
+          </Text>
+        </View>
       ) : (
-        <LinearGradient colors={['rgba(255,255,255,0.07)', 'rgba(255,255,255,0.025)']} style={styles.panelCard}>
+        <View style={styles.activityPanel}>
           <ActivityPreviewRow item={latest[0]} />
-        </LinearGradient>
+        </View>
       )}
-    </View>
-  );
-}
-
-function TokenRailCard({ rail, onPress }: { rail: (typeof STABLECOIN_RAILS)[number]; onPress: () => void }) {
-  const token = ARC_TESTNET_TOKENS[rail.symbol];
-  return (
-    <TouchableOpacity style={styles.railShadow} activeOpacity={0.8} onPress={onPress}>
-      <LinearGradient colors={[rail.accent + '16', 'rgba(255,255,255,0.025)']} style={styles.railCard}>
-        <View style={[styles.railOrb, { backgroundColor: rail.accent + '24' }]} />
-        <View style={[styles.railBadge, { backgroundColor: rail.accent + '18' }]}> 
-          <Text style={[styles.railSymbol, { color: rail.accent }]}>{rail.symbol}</Text>
-        </View>
-        <Text style={styles.railLabel}>{rail.label}</Text>
-        <Text style={styles.railName} numberOfLines={1}>{token.name}</Text>
-        <View style={styles.railActionRow}>
-          <Text style={styles.railActionText}>{rail.actionLabel}</Text>
-          <Ionicons name={rail.target ? 'arrow-forward' : 'qr-code-outline'} size={13} color="#8EEBFF" />
-        </View>
-      </LinearGradient>
-    </TouchableOpacity>
-  );
-}
-
-export function StablecoinRailsSection() {
-  const router = useRouter();
-
-  function openRail(rail: (typeof STABLECOIN_RAILS)[number]) {
-    if (!rail.target) {
-      router.push({ pathname: '/receive' as any, params: { asset: rail.symbol } });
-      return;
-    }
-
-    router.push({
-      pathname: '/fx' as any,
-      params: {
-        fromSymbol: rail.symbol,
-        toSymbol: rail.target,
-      },
-    });
-  }
-
-  return (
-    <View style={styles.sectionBlockCompact}>
-      <View style={styles.sectionHeader}>
-        <View>
-          <Text style={styles.sectionTitle}>Arc Assets</Text>
-          <Text style={styles.sectionSub}>USDC, EURC, and cirBTC on Arc Testnet</Text>
-        </View>
-      </View>
-      <View style={styles.railsRow}>
-        {STABLECOIN_RAILS.map((rail) => (
-          <TokenRailCard key={rail.symbol} rail={rail} onPress={() => openRail(rail)} />
-        ))}
-      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  sectionBlock: { marginTop: Spacing.md, marginBottom: 22 },
-  sectionBlockCompact: { marginTop: 4, marginBottom: 22 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: Spacing.sm, marginBottom: 12 },
-  sectionTitle: { color: '#F8FAFF', fontSize: FontSize.lg, fontWeight: '700', letterSpacing: -0.18 },
-  sectionSub: { color: '#676B86', fontSize: FontSize.xs, marginTop: 3, maxWidth: 250, fontWeight: '700' },
-  viewAllText: { color: '#8EEBFF', fontSize: FontSize.sm, fontWeight: '700' },
-  cardStack: { gap: 12 },
-  activeShadow: { borderRadius: 24, shadowColor: '#000000', shadowOpacity: 0.28, shadowRadius: 18, shadowOffset: { width: 0, height: 12 }, elevation: 5 },
-  activeCard: { padding: Spacing.md, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.085)', overflow: 'hidden' },
-  cardGlow: { position: 'absolute', right: -48, top: -48, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(25,230,255,0.08)' },
-  activeHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm, marginBottom: 12 },
-  activeTitleWrap: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  activeIcon: { width: 36, height: 36, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  activeTitle: { flex: 1, color: Colors.text1, fontSize: FontSize.md, fontWeight: '700', letterSpacing: -0.05 },
-  chip: { borderRadius: Radius.full, paddingHorizontal: 9, paddingVertical: 5, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)' },
-  chipText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.35, textTransform: 'uppercase' },
-  activeAmount: { color: Colors.text1, fontSize: FontSize.lg, fontWeight: '800', letterSpacing: -0.15 },
-  activeDetail: { color: Colors.text2, fontSize: FontSize.sm, lineHeight: 18, marginTop: 4, fontWeight: '600' },
-  progressTrack: { height: 6, borderRadius: Radius.full, backgroundColor: 'rgba(255,255,255,0.075)', overflow: 'hidden', marginTop: 12 },
+  section: {
+    alignSelf: 'stretch',
+    flexShrink: 0,
+    minWidth: 0,
+    marginTop: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 11,
+  },
+  sectionHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  sectionTitle: {
+    color: Colors.text1,
+    fontSize: FontSize.lg,
+    fontFamily: FontFamily.displaySemiBold,
+    letterSpacing: -0.2,
+  },
+  sectionAction: {
+    color: Colors.primary,
+    fontSize: FontSize.sm,
+    fontFamily: FontFamily.bodySemiBold,
+  },
+  sectionMeta: {
+    color: Colors.text3,
+    fontSize: FontSize.xs,
+    fontFamily: FontFamily.bodyMedium,
+  },
+  stack: { gap: 9 },
+  activeCardPress: { alignSelf: 'stretch', borderRadius: Radius.lg },
+  activeCard: {
+    alignSelf: 'stretch',
+    flexShrink: 0,
+    flexDirection: 'row',
+    overflow: 'hidden',
+    borderRadius: Radius.lg,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  activeAccent: { width: 3 },
+  activeBody: { flex: 1, minWidth: 0, padding: 14 },
+  activeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  activeTitleRow: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+  },
+  activeIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activeTitle: {
+    flex: 1,
+    color: Colors.text1,
+    fontSize: FontSize.sm,
+    fontFamily: FontFamily.bodySemiBold,
+  },
+  statusChip: {
+    borderRadius: Radius.full,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  statusText: {
+    fontSize: 9.5,
+    fontFamily: FontFamily.bodySemiBold,
+    textTransform: 'uppercase',
+  },
+  activeContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    gap: 8,
+  },
+  activeCopy: { flex: 1 },
+  activeAmount: {
+    color: Colors.text1,
+    fontSize: FontSize.md,
+    fontFamily: FontFamily.displaySemiBold,
+  },
+  activeDetail: {
+    color: Colors.text3,
+    fontSize: FontSize.xs,
+    fontFamily: FontFamily.body,
+    marginTop: 3,
+  },
+  progressTrack: {
+    height: 4,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.elevated,
+    overflow: 'hidden',
+    marginTop: 11,
+  },
   progressFill: { height: '100%', borderRadius: Radius.full },
-  cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm, marginTop: 14 },
-  cardTimestamp: { color: Colors.text3, fontSize: FontSize.xs, fontWeight: '700' },
-  ctaButton: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 11, paddingVertical: 7, borderRadius: Radius.full, backgroundColor: 'rgba(25,230,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  ctaText: { color: '#8EEBFF', fontSize: FontSize.xs, fontWeight: '700' },
-  panelCard: { borderRadius: 22, borderWidth: 1, borderColor: 'rgba(255,255,255,0.075)', overflow: 'hidden' },
-  loadingCard: { minHeight: 76, alignItems: 'center', justifyContent: 'center' },
-  activityPreview: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.md, paddingVertical: 14 },
-  activityIcon: { width: 41, height: 41, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.075)' },
-  activityMeta: { flex: 1, gap: 2 },
-  activityTitle: { color: Colors.text1, fontSize: FontSize.md, fontWeight: '700', letterSpacing: -0.05 },
-  activitySub: { color: Colors.text2, fontSize: FontSize.sm, lineHeight: 18, fontWeight: '600' },
-  activityTime: { color: Colors.text3, fontSize: FontSize.xs, marginTop: 2 },
-  smallStatus: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderRadius: Radius.full, paddingHorizontal: 8, paddingVertical: 4 },
-  smallStatusText: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
-  noticeCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radius.lg, borderWidth: 1, borderColor: 'rgba(255,255,255,0.075)', marginBottom: Spacing.sm },
-  noticeText: { flex: 1, color: Colors.text2, fontSize: FontSize.sm, lineHeight: 18 },
-  emptyCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  emptyVisualWrap: { width: 48, height: 48, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  emptyCoin: { width: 45, height: 45, borderRadius: 17, alignItems: 'center', justifyContent: 'center', shadowColor: '#00D4FF', shadowOpacity: 0.25, shadowRadius: 12, shadowOffset: { width: 0, height: 7 }, elevation: 4 },
+  timestamp: { color: Colors.text3, fontFamily: FontFamily.body, fontSize: 10, marginTop: 8 },
+  inlineNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.warningBg,
+    marginBottom: 9,
+  },
+  inlineNoticeText: {
+    flex: 1,
+    color: Colors.warning,
+    fontSize: FontSize.xs,
+    fontFamily: FontFamily.body,
+    lineHeight: 16,
+  },
+  skeletonCard: {
+    minHeight: 62,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+    padding: 13,
+    borderRadius: Radius.lg,
+    backgroundColor: Colors.surface,
+  },
+  skeletonIcon: { width: 38, height: 38, borderRadius: 13, backgroundColor: Colors.elevated },
+  skeletonCopy: { flex: 1, gap: 8 },
+  skeletonTitle: { width: '46%', height: 9, borderRadius: 5, backgroundColor: Colors.elevated },
+  skeletonLine: { width: '70%', height: 7, borderRadius: 4, backgroundColor: Colors.elevated },
+  emptyCard: {
+    minHeight: 112,
+    padding: 13,
+    borderRadius: Radius.lg,
+    backgroundColor: Colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+  },
+  emptyTop: { flexDirection: 'row', alignItems: 'center', gap: 11 },
+  emptyIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.successBg,
+  },
   emptyCopy: { flex: 1 },
-  emptyTitle: { color: Colors.text1, fontSize: FontSize.md, fontWeight: '700' },
-  emptyText: { color: Colors.text2, fontSize: FontSize.xs, lineHeight: 17, marginTop: 3, fontWeight: '600' },
-  emptyActions: { gap: 7, alignItems: 'stretch' },
-  emptyButton: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: Radius.full, backgroundColor: 'rgba(25,230,255,0.12)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  emptyButtonText: { color: '#8EEBFF', fontSize: FontSize.xs, fontWeight: '800', textAlign: 'center' },
-  emptyButtonSecondary: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: Radius.full, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)' },
-  emptyButtonSecondaryText: { color: Colors.text1, fontSize: FontSize.xs, fontWeight: '800', textAlign: 'center' },
-  emptyCompactTitle: { color: Colors.text1, fontSize: FontSize.md, fontWeight: '700', paddingTop: Spacing.md, paddingHorizontal: Spacing.md },
-  emptyCompactText: { color: Colors.text2, fontSize: FontSize.sm, lineHeight: 19, paddingHorizontal: Spacing.md, paddingTop: 4, paddingBottom: Spacing.md },
-  railsRow: { flexDirection: 'row', gap: Spacing.sm },
-  railShadow: { flex: 1, borderRadius: 19, shadowColor: '#000000', shadowOpacity: 0.22, shadowRadius: 12, shadowOffset: { width: 0, height: 8 }, elevation: 3 },
-  railCard: { minHeight: 92, padding: 11, borderRadius: 19, borderWidth: 1, borderColor: 'rgba(255,255,255,0.075)', justifyContent: 'space-between', overflow: 'hidden' },
-  railOrb: { position: 'absolute', width: 64, height: 64, borderRadius: 32, right: -22, top: -20 },
-  railBadge: { alignSelf: 'flex-start', borderRadius: Radius.full, paddingHorizontal: 9, paddingVertical: 5, marginBottom: 7, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  railSymbol: { fontSize: 11, fontWeight: '700' },
-  railLabel: { color: Colors.text2, fontSize: 11, fontWeight: '700' },
-  railName: { color: Colors.text3, fontSize: 10, lineHeight: 14, marginTop: 3, fontWeight: '600' },
-  railActionRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 10 },
-  railActionText: { color: Colors.text1, fontSize: FontSize.xs, fontWeight: '700' },
+  emptyTitle: { color: Colors.text1, fontFamily: FontFamily.bodySemiBold, fontSize: FontSize.sm },
+  emptyText: { color: Colors.text3, fontFamily: FontFamily.body, fontSize: FontSize.xs, marginTop: 2 },
+  emptyActions: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  emptyAction: {
+    flex: 1,
+    height: 38,
+    borderRadius: Radius.full,
+  },
+  emptyActionContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.primaryGlow,
+  },
+  emptyActionText: {
+    color: Colors.primary,
+    fontSize: FontSize.xs,
+    fontFamily: FontFamily.bodySemiBold,
+  },
+  activityPanel: {
+    overflow: 'hidden',
+    borderRadius: Radius.lg,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  activityRowPress: { borderRadius: Radius.lg },
+  activityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+    padding: 13,
+  },
+  activityIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activityMeta: { flex: 1, minWidth: 0 },
+  activityTitle: {
+    color: Colors.text1,
+    fontSize: FontSize.sm,
+    fontFamily: FontFamily.bodySemiBold,
+  },
+  activitySub: {
+    color: Colors.text3,
+    fontSize: FontSize.xs,
+    fontFamily: FontFamily.body,
+    marginTop: 3,
+  },
+  activityRight: { alignItems: 'flex-end', gap: 3 },
+  activityTime: { color: Colors.text3, fontFamily: FontFamily.body, fontSize: 10 },
+  activityStatus: {
+    fontSize: 9,
+    fontFamily: FontFamily.bodySemiBold,
+    textTransform: 'uppercase',
+  },
+  activityEmpty: {
+    minHeight: 62,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    borderRadius: Radius.lg,
+    backgroundColor: Colors.surface,
+  },
+  activityEmptyText: { flex: 1, color: Colors.text3, fontFamily: FontFamily.body, fontSize: FontSize.sm },
 });
 
 

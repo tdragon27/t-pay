@@ -1,175 +1,228 @@
 ﻿import React from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Card } from '@/components/ui/Card';
-import { UtilityBackButton } from '@/components/ui/UtilityBackButton';
-import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
+import { useRouter } from 'expo-router';
+
+import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
+import { MotionView } from '@/components/ui/MotionView';
+import { Colors, FontFamily, FontSize, Radius, Spacing } from '@/constants/theme';
 import { SUPPORTED_ARC_TESTNET_TOKENS } from '@/constants/tokens';
 import { useBalance } from '@/hooks/useBalance';
 import { useWalletStore } from '@/store/walletStore';
+import { copyWalletAddress } from '@/utils/copyWalletAddress';
 import { shortenAddress } from '@/utils/format';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 type TokenBalances = ReturnType<typeof useWalletStore.getState>['tokenBalances'];
 
-type MoreRoute =
-  | '/fx'
-  | '/bridge'
-  | '/faucet'
-  | '/smart-qr'
-  | '/contacts'
-  | '/split-bill'
-  | '/history'
-  | '/security-backup'
-  | '/gas-sponsorship'
-  | '/notifications'
-  | '/merchant-analytics'
-  | '/insights'
-  | '/(tabs)/portfolio'
-  | '/(tabs)/invoices'
-  | '/(tabs)/recurring'
-  | '/(tabs)/settings';
-
-interface MoreItem {
-  label: string;
-  sublabel: string;
+interface ProfileItem {
+  title: string;
+  detail: string;
   icon: IconName;
-  accent: string;
-  route: MoreRoute;
-  badge?: string;
+  route: string;
+  accent?: string;
 }
 
-const MONEY_TOOLS: MoreItem[] = [
-  { label: 'Portfolio', sublabel: 'Arc assets and payment overview', icon: 'bar-chart-outline', accent: Colors.primary, route: '/(tabs)/portfolio' },
-  { label: 'Activity', sublabel: 'Wallet history and exports', icon: 'receipt-outline', accent: '#6FA8FF', route: '/history' },
-  { label: 'Swap', sublabel: 'Exchange supported test assets', icon: 'swap-horizontal-outline', accent: '#8B79FF', route: '/fx' },
-  { label: 'Bridge', sublabel: 'Move test funds to Arc', icon: 'git-compare-outline', accent: Colors.warning, route: '/bridge' },
-  { label: 'Faucet', sublabel: 'Get USDC, EURC, and cirBTC test assets', icon: 'water-outline', accent: '#6FA8FF', route: '/faucet', badge: 'Testnet' },
-  { label: 'Smart QR', sublabel: 'Share a clean payment QR', icon: 'qr-code-outline', accent: Colors.primary, route: '/smart-qr' },
-  { label: 'Split Bill', sublabel: 'Group payment links', icon: 'people-circle-outline', accent: '#2DE2C5', route: '/split-bill' },
-  { label: 'Contacts', sublabel: 'Saved names and wallets', icon: 'people-outline', accent: Colors.success, route: '/contacts' },
+const PROFILE_ITEMS: ProfileItem[] = [
+  {
+    title: 'Contacts',
+    detail: 'Trusted names and wallet addresses',
+    icon: 'people-outline',
+    route: '/contacts',
+    accent: Colors.success,
+  },
+  {
+    title: 'Security and backup',
+    detail: 'PIN, biometrics, and recovery phrase',
+    icon: 'shield-checkmark-outline',
+    route: '/security-backup',
+    accent: Colors.warning,
+  },
+  {
+    title: 'Notifications',
+    detail: 'Payment and security alerts',
+    icon: 'notifications-outline',
+    route: '/notifications',
+  },
+  {
+    title: 'Settings',
+    detail: 'Currency, network, and developer tools',
+    icon: 'settings-outline',
+    route: '/(tabs)/settings',
+    accent: Colors.text2,
+  },
+  {
+    title: 'Testnet faucet',
+    detail: 'Get USDC, EURC, and cirBTC test assets',
+    icon: 'water-outline',
+    route: '/faucet',
+    accent: '#6FA8FF',
+  },
 ];
 
-const MERCHANT_TOOLS: MoreItem[] = [
-  { label: 'Invoices', sublabel: 'Merchant payment requests', icon: 'document-text-outline', accent: Colors.primary, route: '/(tabs)/invoices' },
-  { label: 'Recurring', sublabel: 'Scheduled USDC payments', icon: 'repeat-outline', accent: Colors.success, route: '/(tabs)/recurring' },
-  { label: 'Analytics', sublabel: 'Revenue and CSV exports', icon: 'analytics-outline', accent: Colors.warning, route: '/merchant-analytics' },
-];
-
-const SECURITY_TOOLS: MoreItem[] = [
-  { label: 'Security Backup', sublabel: 'Seed phrase and private-key safety', icon: 'shield-checkmark-outline', accent: Colors.warning, route: '/security-backup' },
-  { label: 'Notifications', sublabel: 'Payment and security alerts', icon: 'notifications-outline', accent: Colors.primary, route: '/notifications' },
-  { label: 'Gas Sponsorship', sublabel: 'Paymaster readiness', icon: 'sparkles-outline', accent: '#FF9F7A', route: '/gas-sponsorship' },
-  { label: 'Settings', sublabel: 'Wallet, RPC, and debug tools', icon: 'settings-outline', accent: Colors.text2, route: '/(tabs)/settings' },
-];
-
-function ToolRow({ item }: { item: MoreItem }) {
-  const router = useRouter();
+function AssetsSummary({ balances }: { balances: TokenBalances }) {
   return (
-    <TouchableOpacity style={styles.toolRow} activeOpacity={0.78} onPress={() => router.push(item.route as any)}>
-      <View style={[styles.toolIcon, { backgroundColor: `${item.accent}18`, borderColor: `${item.accent}40` }]}>
-        <Ionicons name={item.icon} size={20} color={item.accent} />
+    <View style={styles.assetsPanel}>
+      {SUPPORTED_ARC_TESTNET_TOKENS.map((token, index) => {
+        const state = balances[token.symbol];
+        const value = state?.error ? '—' : state?.formatted ?? '0';
+
+        return (
+          <View key={token.symbol}>
+            {index > 0 ? <View style={styles.divider} /> : null}
+            <View style={styles.assetRow}>
+              <View style={[styles.assetIcon, { backgroundColor: `${token.accent}12` }]}>
+                <Text style={[styles.assetIconText, { color: token.accent }]}>
+                  {token.iconLabel}
+                </Text>
+              </View>
+              <View style={styles.assetCopy}>
+                <Text style={styles.assetSymbol}>{token.symbol}</Text>
+                <Text style={styles.assetName}>{token.name}</Text>
+              </View>
+              <View style={styles.assetRight}>
+                {state?.isLoading ? (
+                  <ActivityIndicator size="small" color={token.accent} />
+                ) : (
+                  <Text style={styles.assetValue}>{value}</Text>
+                )}
+                <Text style={styles.assetState}>
+                  {state?.error ? 'Unavailable' : 'Arc Testnet'}
+                </Text>
+              </View>
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+function ProfileRow({ item }: { item: ProfileItem }) {
+  const router = useRouter();
+  const accent = item.accent ?? Colors.primary;
+
+  return (
+    <TouchableOpacity
+      style={styles.profileRow}
+      activeOpacity={0.72}
+      onPress={() => router.push(item.route as any)}
+    >
+      <View style={[styles.profileIcon, { backgroundColor: `${accent}12` }]}>
+        <Ionicons name={item.icon} size={19} color={accent} />
       </View>
-      <View style={styles.toolMeta}>
-        <View style={styles.toolTitleRow}>
-          <Text style={styles.toolTitle}>{item.label}</Text>
-          {item.badge ? <Text style={styles.badge}>{item.badge}</Text> : null}
-        </View>
-        <Text style={styles.toolSub}>{item.sublabel}</Text>
+      <View style={styles.profileCopy}>
+        <Text style={styles.profileTitle}>{item.title}</Text>
+        <Text style={styles.profileDetail}>{item.detail}</Text>
       </View>
       <Ionicons name="chevron-forward" size={18} color={Colors.text3} />
     </TouchableOpacity>
   );
 }
 
-function Section({ title, items }: { title: string; items: MoreItem[] }) {
-  return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <Card style={styles.sectionCard}>
-        {items.map((item, index) => (
-          <View key={item.label}>
-            <ToolRow item={item} />
-            {index < items.length - 1 ? <View style={styles.divider} /> : null}
-          </View>
-        ))}
-      </Card>
-    </View>
-  );
-}
-
-function AssetsSummary({ tokenBalances }: { tokenBalances: TokenBalances }) {
-  return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Assets</Text>
-      <LinearGradient colors={['rgba(255,255,255,0.075)', 'rgba(255,255,255,0.028)']} style={styles.assetsCard}>
-        {SUPPORTED_ARC_TESTNET_TOKENS.map((token, index) => {
-          const balance = tokenBalances[token.symbol];
-          const value = balance?.error ? '—' : balance?.formatted ?? '0.00';
-          return (
-            <View key={token.symbol}>
-              <View style={styles.assetRow}>
-                <View style={[styles.assetIcon, { backgroundColor: `${token.accent}18`, borderColor: `${token.accent}38` }]}>
-                  <Text style={[styles.assetIconText, { color: token.accent }]}>{token.iconLabel}</Text>
-                </View>
-                <View style={styles.assetMeta}>
-                  <Text style={styles.assetSymbol}>{token.symbol}</Text>
-                  <Text style={styles.assetName} numberOfLines={1}>{token.name}</Text>
-                </View>
-                <View style={styles.assetValueWrap}>
-                  {balance?.isLoading ? <ActivityIndicator size="small" color={token.accent} /> : <Text style={styles.assetValue}>{value}</Text>}
-                  {balance?.error ? <Text style={styles.assetState}>Unavailable</Text> : <Text style={styles.assetState}>Arc Testnet</Text>}
-                </View>
-              </View>
-              {index < SUPPORTED_ARC_TESTNET_TOKENS.length - 1 ? <View style={styles.assetDivider} /> : null}
-            </View>
-          );
-        })}
-      </LinearGradient>
-    </View>
-  );
-}
-
-export default function MoreScreen() {
+export default function ProfileScreen() {
   useBalance();
+  const router = useRouter();
   const { address, tokenBalances } = useWalletStore();
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <UtilityBackButton />
-            <View>
-              <Text style={styles.kicker}>Wallet profile</Text>
-              <Text style={styles.title}>Profile</Text>
+      <LinearGradient
+        colors={['rgba(53,213,244,0.075)', 'rgba(7,9,13,0)']}
+        style={styles.topWash}
+        pointerEvents="none"
+      />
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <MotionView variant="fade" style={styles.header}>
+          <View>
+            <Text style={styles.kicker}>YOUR WALLET</Text>
+            <Text style={styles.title}>Profile</Text>
+            <Text style={styles.subtitle}>Wallet, security, and preferences.</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.settingsHitbox}
+            activeOpacity={0.72}
+            onPress={() => router.push('/(tabs)/settings' as any)}
+          >
+            <LiquidGlassSurface
+              tone="clear"
+              intensity={42}
+              style={styles.settingsButton}
+              contentStyle={styles.settingsContent}
+            >
+              <Ionicons name="settings-outline" size={19} color={Colors.text1} />
+            </LiquidGlassSurface>
+          </TouchableOpacity>
+        </MotionView>
+
+        <MotionView delay={40}>
+          <LinearGradient
+            colors={['#123442', '#142738', '#111721']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.accountCard}
+          >
+            <View style={styles.accountGlow} pointerEvents="none" />
+            <View style={styles.accountIcon}>
+              <Ionicons name="wallet-outline" size={22} color={Colors.primary} />
             </View>
-          </View>
-          <View style={styles.walletChip}>
-            <Ionicons name="wallet-outline" size={15} color={Colors.primary} />
-            <Text style={styles.walletChipText}>{address ? shortenAddress(address, 5) : 'No wallet'}</Text>
-          </View>
-        </View>
+            <View style={styles.accountCopy}>
+              <Text style={styles.accountLabel}>Self-custodial wallet</Text>
+              <Text style={styles.accountAddress}>
+                {address ? shortenAddress(address, 8) : 'No wallet connected'}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.copyButton}
+              activeOpacity={0.72}
+              onPress={() => void copyWalletAddress(address)}
+              disabled={!address}
+            >
+              <Ionicons name="copy-outline" size={17} color={Colors.primary} />
+            </TouchableOpacity>
+          </LinearGradient>
+        </MotionView>
 
-        <LinearGradient colors={['rgba(25,230,255,0.14)', 'rgba(139,121,255,0.06)', 'rgba(255,255,255,0.025)']} style={styles.hero}>
-          <View style={styles.heroIcon}>
-            <Ionicons name="person-circle-outline" size={22} color={Colors.primary} />
-          </View>
-          <View style={styles.heroCopy}>
-            <Text style={styles.heroTitle}>Wallet summary</Text>
-            <Text style={styles.heroSub}>{address ? shortenAddress(address, 7) : 'Create or import a wallet'} · Arc Testnet assets only</Text>
-          </View>
-        </LinearGradient>
+        <MotionView delay={80}>
+          <Text style={styles.sectionTitle}>Assets</Text>
+          <AssetsSummary balances={tokenBalances} />
+        </MotionView>
 
-        <AssetsSummary tokenBalances={tokenBalances} />
-        <Section title="Wallet and funds" items={MONEY_TOOLS} />
-        <Section title="Merchant records" items={MERCHANT_TOOLS} />
-        <Section title="Security and system" items={SECURITY_TOOLS} />
+        <MotionView delay={120}>
+          <Text style={[styles.sectionTitle, styles.toolsTitle]}>Wallet Tools</Text>
+          <LiquidGlassSurface
+            tone="regular"
+            intensity={34}
+            style={styles.profilePanel}
+          >
+            {PROFILE_ITEMS.map((item, index) => (
+              <View key={item.title}>
+                {index > 0 ? <View style={styles.profileDivider} /> : null}
+                <ProfileRow item={item} />
+              </View>
+            ))}
+          </LiquidGlassSurface>
+        </MotionView>
 
-        <View style={{ height: 104 }} />
+        <MotionView delay={150} style={styles.testnetStrip}>
+          <View style={styles.testnetDot} />
+          <Text style={styles.testnetText}>T Pay · Arc Testnet only</Text>
+        </MotionView>
+
+        <View style={{ height: Platform.OS === 'ios' ? 104 : 88 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -177,40 +230,183 @@ export default function MoreScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
-  content: { padding: Spacing.md, gap: Spacing.md },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  headerLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  kicker: { color: Colors.text3, fontSize: FontSize.xs, textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: '800' },
-  title: { color: Colors.text1, fontSize: 34, fontWeight: '800', letterSpacing: -1 },
-  walletChip: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 11, paddingVertical: 8, borderRadius: Radius.full, backgroundColor: Colors.primaryGlow, borderWidth: 1, borderColor: 'rgba(0,212,255,0.24)' },
-  walletChipText: { color: Colors.primary, fontSize: FontSize.xs, fontWeight: '800' },
-  hero: { flexDirection: 'row', alignItems: 'center', borderRadius: 24, paddingHorizontal: Spacing.md, paddingVertical: 14, borderWidth: 1, borderColor: 'rgba(0,212,255,0.15)', gap: 12, overflow: 'hidden' },
-  heroIcon: { width: 42, height: 42, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primaryGlow, borderWidth: 1, borderColor: 'rgba(0,212,255,0.22)' },
-  heroCopy: { flex: 1, gap: 3 },
-  heroTitle: { color: Colors.text1, fontSize: FontSize.lg, lineHeight: 23, fontWeight: '800', letterSpacing: -0.25 },
-  heroSub: { color: Colors.text2, fontSize: FontSize.xs, lineHeight: 17, fontWeight: '600' },
-  section: { gap: 9 },
-  sectionTitle: { color: Colors.text2, fontSize: FontSize.xs, fontWeight: '800', letterSpacing: 1.1, textTransform: 'uppercase', paddingHorizontal: 4 },
-  sectionCard: { padding: 0, overflow: 'hidden' },
-  assetsCard: { borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.085)', padding: 14, overflow: 'hidden' },
-  assetRow: { flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 4 },
-  assetIcon: { width: 38, height: 38, borderRadius: 15, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  assetIconText: { fontSize: 13, fontWeight: '900' },
-  assetMeta: { flex: 1, gap: 2 },
-  assetSymbol: { color: Colors.text1, fontSize: FontSize.sm, fontWeight: '800' },
-  assetName: { color: Colors.text3, fontSize: FontSize.xs, lineHeight: 16 },
-  assetValueWrap: { minWidth: 92, alignItems: 'flex-end', gap: 2 },
-  assetValue: { color: Colors.text1, fontSize: FontSize.sm, fontWeight: '800' },
-  assetState: { color: Colors.text3, fontSize: 10, fontWeight: '700' },
-  assetDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.055)', marginLeft: 49, marginVertical: 8 },
-  toolRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: Spacing.md, paddingVertical: 14 },
-  toolIcon: { width: 42, height: 42, borderRadius: 15, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  toolMeta: { flex: 1, gap: 3 },
-  toolTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  toolTitle: { color: Colors.text1, fontSize: FontSize.md, fontWeight: '800' },
-  toolSub: { color: Colors.text3, fontSize: FontSize.xs, lineHeight: 17 },
-  badge: { color: Colors.warning, fontSize: 10, fontWeight: '800', paddingHorizontal: 7, paddingVertical: 3, borderRadius: Radius.full, backgroundColor: Colors.warningBg, overflow: 'hidden' },
-  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.055)', marginLeft: 70 },
+  topWash: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 280,
+  },
+  content: { paddingHorizontal: Spacing.md, paddingTop: 10 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 18,
+  },
+  kicker: {
+    color: '#83E9FB',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.35,
+    marginBottom: 2,
+  },
+  title: {
+    color: Colors.text1,
+    fontFamily: FontFamily.displayBold,
+    fontSize: 30,
+    lineHeight: 36,
+    letterSpacing: -0.7,
+  },
+  subtitle: { color: Colors.text2, fontFamily: FontFamily.body, fontSize: FontSize.sm, marginTop: 3 },
+  settingsHitbox: {
+    width: 42,
+    height: 42,
+    borderRadius: 15,
+  },
+  settingsButton: {
+    flex: 1,
+    borderRadius: 15,
+  },
+  settingsContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  accountCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 15,
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(145,231,255,0.13)',
+    marginBottom: 24,
+    overflow: 'hidden',
+    shadowColor: '#0AA7C4',
+    shadowOpacity: 0.11,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 7,
+  },
+  accountGlow: {
+    position: 'absolute',
+    right: -48,
+    top: -74,
+    width: 170,
+    height: 170,
+    borderRadius: 85,
+    backgroundColor: 'rgba(53,213,244,0.12)',
+  },
+  accountIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primaryGlow,
+  },
+  accountCopy: { flex: 1 },
+  accountLabel: { color: Colors.text2, fontSize: FontSize.xs },
+  accountAddress: {
+    color: Colors.text1,
+    fontFamily: FontFamily.mono,
+    fontSize: FontSize.md,
+    marginTop: 4,
+  },
+  copyButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primaryGlow,
+  },
+  sectionTitle: {
+    color: Colors.text1,
+    fontFamily: FontFamily.displaySemiBold,
+    fontSize: FontSize.md,
+    marginBottom: 11,
+  },
+  assetsPanel: {
+    overflow: 'hidden',
+    borderRadius: Radius.lg,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  assetRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+    padding: 13,
+  },
+  assetIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  assetIconText: { fontSize: 12, fontWeight: '700' },
+  assetCopy: { flex: 1 },
+  assetSymbol: {
+    color: Colors.text1,
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+  },
+  assetName: { color: Colors.text3, fontSize: FontSize.xs, marginTop: 2 },
+  assetRight: { alignItems: 'flex-end', gap: 2 },
+  assetValue: {
+    color: Colors.text1,
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+  },
+  assetState: { color: Colors.text3, fontSize: 10 },
+  divider: { height: 1, marginLeft: 62, backgroundColor: Colors.border },
+  toolsTitle: { marginTop: 24 },
+  profilePanel: {
+    overflow: 'hidden',
+    borderRadius: Radius.lg,
+  },
+  profileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+    padding: 14,
+  },
+  profileIcon: {
+    width: 39,
+    height: 39,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileCopy: { flex: 1 },
+  profileTitle: {
+    color: Colors.text1,
+    fontSize: FontSize.sm,
+    fontWeight: '600',
+  },
+  profileDetail: {
+    color: Colors.text3,
+    fontSize: FontSize.xs,
+    lineHeight: 16,
+    marginTop: 3,
+  },
+  profileDivider: { height: 1, marginLeft: 64, backgroundColor: Colors.border },
+  testnetStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    marginTop: 15,
+  },
+  testnetDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.success,
+  },
+  testnetText: { color: Colors.text3, fontSize: FontSize.xs },
 });
-
-

@@ -68,6 +68,7 @@ export function usePaymentDashboard({
   return {
     activePayments,
     latestActivity,
+    activityItems: activity.items,
     splits,
     invoices,
     pendingTxs,

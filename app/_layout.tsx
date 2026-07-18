@@ -1,8 +1,10 @@
 ﻿import '../global.css';
 
-import { useEffect } from 'react';
-import { ActivityIndicator, AppState, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, AppState, StyleSheet, Text, View } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
+import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -15,6 +17,12 @@ import { useWalletStore } from '@/store/walletStore';
 import { hasPinSetup, isAppLocked, isPinSecurityEnabled, lockIfInactive, setAppLocked } from '@/services/securityService';
 import { NetworkProvider } from '@/hooks/useNetworkStatus';
 import { OfflineBanner } from '@/components/OfflineBanner';
+import { LaunchExperience } from '@/components/motion/LaunchExperience';
+import { Colors, FontFamily } from '@/constants/theme';
+
+void SplashScreen.preventAutoHideAsync().catch(() => undefined);
+
+let launchExperienceShown = false;
 
 if (typeof globalThis.Buffer === 'undefined') {
   (globalThis as any).Buffer = Buffer;
@@ -101,8 +109,9 @@ function RootNavigator() {
   }, [isLoaded, address, segments, router]);
   if (!isLoaded) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0A0A0F' }}>
-        <ActivityIndicator size="large" color="#00D4FF" />
+      <View style={styles.walletBoot}>
+        <ActivityIndicator color={Colors.primary} />
+        <Text style={styles.walletBootText}>Loading wallet securely</Text>
       </View>
     );
   }
@@ -118,6 +127,8 @@ function RootNavigator() {
       <Stack.Screen name="pin-setup" />
       <Stack.Screen name="lock" />
       <Stack.Screen name="send" options={modal} />
+      <Stack.Screen name="universal-pay" options={modal} />
+      <Stack.Screen name="batch-payout" options={modal} />
       <Stack.Screen name="receive" options={modal} />
       <Stack.Screen name="bridge" options={modal} />
       <Stack.Screen name="faucet" options={modal} />
@@ -144,8 +155,56 @@ function RootNavigator() {
   );
 }
 
+const styles = StyleSheet.create({
+  walletBoot: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    backgroundColor: Colors.bg,
+  },
+  walletBootText: {
+    color: Colors.text3,
+    fontFamily: FontFamily.body,
+    fontSize: 12,
+  },
+});
+
 export default function RootLayout() {
   useArcWallet();
+  const [fontsLoaded, fontError] = useFonts({
+    'GeneralSans-Semibold': require('../assets/fonts/GeneralSans-Semibold.ttf'),
+    'GeneralSans-Bold': require('../assets/fonts/GeneralSans-Bold.ttf'),
+    'Inter-Regular': require('../assets/fonts/Inter-Regular.ttf'),
+    'Inter-Medium': require('../assets/fonts/Inter-Medium.ttf'),
+    'Inter-SemiBold': require('../assets/fonts/Inter-SemiBold.ttf'),
+    'SpaceMono-Regular': require('../assets/fonts/SpaceMono-Regular.ttf'),
+  });
+  const [showLaunchExperience, setShowLaunchExperience] = useState(!launchExperienceShown);
+
+  useEffect(() => {
+    if (!fontsLoaded && !fontError) return undefined;
+    void SplashScreen.hideAsync().catch(() => undefined);
+    if (!showLaunchExperience) return undefined;
+    const timer = setTimeout(() => {
+      launchExperienceShown = true;
+      setShowLaunchExperience(false);
+    }, 1600);
+    return () => clearTimeout(timer);
+  }, [fontError, fontsLoaded, showLaunchExperience]);
+
+  if (!fontsLoaded && !fontError) return null;
+
+  if (showLaunchExperience) {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <StatusBar style="light" backgroundColor="#0A0A0F" />
+          <LaunchExperience />
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    );
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

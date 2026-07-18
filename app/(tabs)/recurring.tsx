@@ -96,7 +96,7 @@ function SubscriptionCard({
         </View>
         <View style={{ flex: 1, gap: 4 }}>
           <Text style={styles.subTitle}>{item.label}</Text>
-          <Text style={styles.subMeta}>{shortenAddress(item.payee, 6)} � {item.intervalLabel}</Text>
+          <Text style={styles.subMeta}>{shortenAddress(item.payee, 6)} · {item.intervalLabel}</Text>
         </View>
         <View style={{ alignItems: 'flex-end', gap: 6 }}>
           <Text style={styles.subAmount}>${item.amount.toFixed(2)}</Text>

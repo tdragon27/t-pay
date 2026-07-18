@@ -3,7 +3,7 @@ import { STORAGE_KEYS } from '@/constants/STORAGE_KEYS';
 import { ARC_TESTNET_DEFAULTS } from '@/constants/chains';
 import { canSetPaymentIntentStatus, normalizePaymentAmount, normalizePaymentIntentStatus, type PaymentIntentStatus } from '@/utils/tpayLogic';
 
-export type PaymentIntentType = 'transfer' | 'split' | 'merchant' | 'request';
+export type PaymentIntentType = 'transfer' | 'split' | 'merchant' | 'request' | 'batch';
 export type PaymentIntentCreatedBy = 'user' | 'system' | 'agent';
 export type PaymentIntentRiskLevel = 'low' | 'medium' | 'high';
 

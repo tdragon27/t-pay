@@ -1,6 +1,6 @@
 -- T Pay Split Bill Supabase schema
--- Testnet-oriented public policies because the current app identifies users by wallet address,
--- not Supabase Auth. Tighten these policies before mainnet or production launch.
+-- Public clients may create/read payment requests. Payment-state mutations are
+-- intentionally reserved for the server-side Arc receipt verifier.
 
 create extension if not exists "pgcrypto";
 
@@ -185,8 +185,9 @@ $$;
 alter table public.split_bills enable row level security;
 alter table public.participants enable row level security;
 
--- Current testnet app has no Supabase Auth. These policies allow anon clients to sync.
--- Before production, replace with wallet-signature auth or backend RPC validation.
+-- The Expo anon client can create/read requests, but it must never be able to
+-- claim that a payment happened. Verified settlement is installed by the
+-- 20260713_harden_split_payment_authority.sql follow-up migration.
 drop policy if exists "split_bills_public_select" on public.split_bills;
 create policy "split_bills_public_select" on public.split_bills for select to anon using (true);
 
@@ -194,7 +195,6 @@ drop policy if exists "split_bills_public_insert" on public.split_bills;
 create policy "split_bills_public_insert" on public.split_bills for insert to anon with check (true);
 
 drop policy if exists "split_bills_public_update" on public.split_bills;
-create policy "split_bills_public_update" on public.split_bills for update to anon using (true) with check (true);
 
 drop policy if exists "participants_public_select" on public.participants;
 create policy "participants_public_select" on public.participants for select to anon using (true);
@@ -203,7 +203,19 @@ drop policy if exists "participants_public_insert" on public.participants;
 create policy "participants_public_insert" on public.participants for insert to anon with check (true);
 
 drop policy if exists "participants_public_update" on public.participants;
-create policy "participants_public_update" on public.participants for update to anon using (true) with check (true);
+
+revoke update, delete on public.split_bills from anon, authenticated;
+revoke update, delete on public.participants from anon, authenticated;
+
+revoke execute on function public.refresh_split_bill_status(uuid) from public, anon, authenticated;
+revoke execute on function public.mark_participant_paid(uuid, text, numeric, text) from public, anon, authenticated;
+revoke execute on function public.record_split_received(uuid, numeric) from public, anon, authenticated;
+revoke execute on function public.expire_open_split_bills() from public, anon, authenticated;
+
+grant execute on function public.refresh_split_bill_status(uuid) to service_role;
+grant execute on function public.mark_participant_paid(uuid, text, numeric, text) to service_role;
+grant execute on function public.record_split_received(uuid, numeric) to service_role;
+grant execute on function public.expire_open_split_bills() to service_role;
 
 alter table public.split_bills replica identity full;
 alter table public.participants replica identity full;

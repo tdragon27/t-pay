@@ -53,6 +53,10 @@ export const ARC_OFFICIAL_CONTRACTS = {
   GATEWAY_MINTER: '0x0022222ABE238Cc2C7Bb1f21003F0a260052475B',
   STABLEFX_ESCROW: '0x867650F5eAe8df91445971f14d89fd84F0C9a9f8',
   PERMIT2: '0x000000000022D473030F116dDEE9F6B43aC78BA3',
+  // Arc transaction extensions. These preserve the original EOA sender in
+  // forwarded calls. Source: https://docs.arc.io/arc/references/contract-addresses
+  MEMO: '0x5294E9927c3306DcBaDb03fe70b92e01cCede505',
+  MULTICALL3_FROM: '0x522fAf9A91c41c443c66765030741e4AaCe147D0',
 } as const;
 
 export const arcTestnet = defineChain({

@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect, useCallback, useMemo } from 'react';
 import { defineChain, parseUnits } from 'viem';
 import { createPublicClientForChain, ERC20_ABI } from '@/lib/viemClient';
-import { chainIdForAppKitChainName, fetchUnifiedUsdcBalances } from '@/lib/arcAppKit';
+import { chainIdForAppKitChainName, fetchUnifiedUsdcBalances, isArcAppKitConfigured } from '@/lib/arcAppKit';
 import { BRIDGE_CHAINS, type BridgeChain } from '@/constants/chains';
 import { formatUsdc } from '@/utils/format';
 
@@ -141,6 +141,7 @@ async function fetchChainBalance(chain: BridgeChain, address: string): Promise<b
 }
 
 async function fetchUnifiedBalanceMap(address: string): Promise<Map<number, bigint> | null> {
+  if (!isArcAppKitConfigured()) return null;
   try {
     const unified = await fetchUnifiedUsdcBalances({
       address,

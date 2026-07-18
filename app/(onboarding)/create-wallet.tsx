@@ -18,6 +18,7 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { safeBack } from '@/utils/navigation';
@@ -39,10 +40,12 @@ import {
   importFromPrivateKey,
   loadPrivateKey,
   saveWalletSecurely,
+  usesEphemeralBrowserWallet,
   type WalletInfo,
 } from '@/lib/wallet';
 import { saveAddress, markOnboardingComplete } from '@/utils/storage';
 import { useWalletStore } from '@/store/walletStore';
+import { FontFamily } from '@/constants/theme';
 
 // --- Types --------------------------------------------------------------------
 
@@ -53,9 +56,10 @@ type Step = 'generating' | 'show_phrase' | 'saving' | 'success';
 interface SuccessScreenProps {
   address: string;
   onContinue: () => void;
+  browserSessionOnly: boolean;
 }
 
-function SuccessScreen({ address, onContinue }: SuccessScreenProps) {
+function SuccessScreen({ address, onContinue, browserSessionOnly }: SuccessScreenProps) {
   // Checkmark circle animation
   const ringScale    = useSharedValue(0);
   const ringOpacity  = useSharedValue(0);
@@ -110,7 +114,9 @@ function SuccessScreen({ address, onContinue }: SuccessScreenProps) {
       <Animated.View style={[styles.successTextWrap, textStyle]}>
         <Text style={styles.successTitle}>Wallet Created!</Text>
         <Text style={styles.successSub}>
-          Your self-custodial T Pay wallet is ready.
+          {browserSessionOnly
+            ? 'Your temporary browser wallet is ready for this tab.'
+            : 'Your self-custodial T Pay wallet is ready.'}
         </Text>
 
         {/* Address pill */}
@@ -215,13 +221,13 @@ export default function CreateWalletScreen() {
     setStep('saving');
 
     try {
-      // 1. Persist to SecureStore
+      // 1. Persist to native SecureStore or an ephemeral browser session.
       await saveWalletSecurely(generatedWallet);
 
       // 2. Audit: verify we can read back the key and re-derive the same address
       const storedPk = await loadPrivateKey();
       if (!storedPk) {
-        throw new Error('Saved private key not found in secure storage.');
+        throw new Error('Saved private key could not be verified.');
       }
       const restored = await importFromPrivateKey(storedPk);
       if (restored.address.toLowerCase() !== generatedWallet.address.toLowerCase()) {
@@ -286,7 +292,11 @@ export default function CreateWalletScreen() {
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#00D4FF" />
           <Text style={styles.loadingTitle}>Saving your wallet...</Text>
-          <Text style={styles.loadingSub}>Writing to secure storage — do not close the app</Text>
+          <Text style={styles.loadingSub}>
+            {usesEphemeralBrowserWallet()
+              ? 'Starting a temporary browser session'
+              : 'Writing to secure storage — do not close the app'}
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -299,6 +309,7 @@ export default function CreateWalletScreen() {
       <SafeAreaView style={styles.container}>
         <SuccessScreen
           address={walletAddress}
+          browserSessionOnly={usesEphemeralBrowserWallet()}
           onContinue={() => {
             if (autoRedirectRef.current) clearTimeout(autoRedirectRef.current);
             router.replace('/(tabs)/home');
@@ -331,6 +342,15 @@ export default function CreateWalletScreen() {
           Write these 12 words down in order and store them somewhere safe.{' '}
           <Text style={styles.danger}>Never share them with anyone.</Text>
         </Text>
+
+        {Platform.OS === 'web' && (
+          <View style={styles.browserNotice}>
+            <Ionicons name="desktop-outline" size={20} color="#00D4FF" />
+            <Text style={styles.browserNoticeText}>
+              Browser preview: this wallet is kept in memory only and is erased when this tab reloads or closes. Use the mobile app for persistent secure storage.
+            </Text>
+          </View>
+        )}
 
         {/* Warning banner */}
         <View style={styles.warnBanner}>
@@ -446,7 +466,7 @@ const styles = StyleSheet.create({
     padding:        32,
   },
   loadingTitle: {
-    fontWeight: '700', fontSize:   18,
+    fontFamily: FontFamily.displaySemiBold, fontSize:   18,
     color:      '#F0F0FF',
     marginTop:  24,
   },
@@ -463,17 +483,37 @@ const styles = StyleSheet.create({
     color:      '#9090B0',
   },
   title: {
-    fontWeight: '700', fontSize:    26,
+    fontFamily: FontFamily.displayBold, fontSize:    26,
     color:       '#F0F0FF',
     marginBottom: 12,
   },
   subtitle: {
+    fontFamily: FontFamily.body,
     fontSize:    14,
     color:       '#9090B0',
     lineHeight:  22,
     marginBottom: 20,
   },
   danger: { color: '#FF4D6A' },
+
+  browserNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginBottom: 16,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(0,212,255,0.28)',
+    backgroundColor: 'rgba(0,212,255,0.08)',
+  },
+  browserNoticeText: {
+    flex: 1,
+    color: '#B8C4D9',
+    fontFamily: FontFamily.body,
+    fontSize: 12,
+    lineHeight: 18,
+  },
 
   // Warning banner
   warnBanner: {
@@ -513,7 +553,7 @@ const styles = StyleSheet.create({
   },
   revealEye:  { marginBottom: 4 },
   revealTitle: {
-    fontWeight: '700', fontSize:   16,
+    fontFamily: FontFamily.bodySemiBold, fontSize:   16,
     color:      '#F0F0FF',
   },
   revealSub: {
@@ -540,7 +580,7 @@ const styles = StyleSheet.create({
     gap:            6,
   },
   wordNum: {
-    fontFamily: 'SpaceMono-Regular',
+    fontFamily: FontFamily.mono,
     fontSize:   10,
     color:      '#5050A0',
     minWidth:   14,
@@ -648,7 +688,7 @@ const styles = StyleSheet.create({
     gap:        10,
   },
   successTitle: {
-    fontWeight: '700', fontSize:   28,
+    fontFamily: FontFamily.displayBold, fontSize:   28,
     color:      '#F0F0FF',
   },
   successSub: {
@@ -675,7 +715,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   successAddressValue: {
-    fontFamily: 'SpaceMono-Regular',
+    fontFamily: FontFamily.mono,
     fontSize:   13,
     color:      '#00D4FF',
   },

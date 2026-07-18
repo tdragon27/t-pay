@@ -135,7 +135,7 @@ export default function SplitDetailScreen() {
           <View style={styles.sectionHeader}>
             <View style={styles.sectionIcon}><Ionicons name="qr-code-outline" size={18} color={Colors.primary} /></View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.sectionTitle}>Share payment request</Text>
+              <Text style={styles.sectionTitle}>Share Payment Request</Text>
               <Text style={styles.sectionSub}>Anyone can scan this and pay their share.</Text>
             </View>
           </View>

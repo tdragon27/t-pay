@@ -19,6 +19,8 @@ Most wallets feel like asset dashboards. T Pay is designed around payment moment
 
 - Self-custodial wallet creation/import with secure local storage.
 - Arc Testnet balances for USDC, EURC, and cirBTC, plus receive QR, send flow, and cached balance fallback.
+- Universal Pay routing: direct Arc transfer, optional public onchain memo, or configured Circle Unified Balance spend with an explicit review step.
+- Verified merchant batch payouts through Arc `Multicall3From`, with all-or-nothing simulation and receipt-event checks.
 - Smart QR and payment links for wallet requests, split bills, and invoices.
 - Split Bill MVP for simple group payments: total USDC, people count, note, receiver wallet, QR/link sharing, collected progress, and optional Supabase sync.
 - Merchant payment requests with QR/payment links, status tracking, CSV/export surfaces, and optional backend/indexer readiness.
@@ -149,6 +151,8 @@ npm run deploy:arc-testnet
 
 After deploying testnet contracts, copy the deployed addresses into the root `.env` placeholders. Do not commit deployer keys.
 
+Verified Arc Testnet contract addresses, creation transactions, and test usage transactions are documented in [`docs/ONCHAIN_EVIDENCE.md`](docs/ONCHAIN_EVIDENCE.md). The evidence list intentionally excludes shared Arc/Circle infrastructure.
+
 ## Documentation
 
 - `docs/DEMO_SCRIPT.md` - step-by-step demo flow for videos and grant review.
@@ -157,6 +161,8 @@ After deploying testnet contracts, copy the deployed addresses into the root `.e
 - `docs/PRODUCTION_READINESS_BASELINE.md` - verified pre-change engineering baseline.
 - `docs/SECURITY_AND_CORRECTNESS_AUDIT.md` - findings, fixes, and residual risks.
 - `docs/PRODUCTION_READINESS_ROADMAP.md` - dependency-aware Sprints 2-6.
+- `docs/ARC_PAYMENT_EXTENSIONS.md` - Universal Pay, public memo, and batch-payout safety model.
+- `docs/ONCHAIN_EVIDENCE.md` - verified T Pay contract addresses and Arc Testnet usage evidence for builder review.
 - `BACKEND_API.md` - optional backend/indexer API notes.
 - `CHANGELOG.md` - completed upgrade notes.
 
@@ -173,6 +179,10 @@ docs/screenshots/developer-debug.png
 ```
 
 ## Security Notes
+
+Split Bill payment-state writes are verified server-side against Arc Testnet
+USDC receipts. Deployment and privilege checks are documented in
+[`docs/SUPABASE_SPLIT_PAYMENT_SECURITY.md`](docs/SUPABASE_SPLIT_PAYMENT_SECURITY.md).
 
 - Wallet secrets are stored locally with `expo-secure-store`.
 - Developer Debug and copied reports must never include seed phrases, private keys, API keys, or raw secret-like env values.

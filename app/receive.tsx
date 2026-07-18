@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
 import Animated, { useSharedValue, useAnimatedStyle, withDelay, withSpring, withTiming } from 'react-native-reanimated';
 import { useWalletStore } from '@/store/walletStore';
-import { Colors, FontSize, Spacing, Radius } from '@/constants/theme';
+import { Colors, FontFamily, FontSize, Spacing, Radius } from '@/constants/theme';
 import { copyWalletAddress } from '@/utils/copyWalletAddress';
 import { safeBack } from '@/utils/navigation';
 import { SUPPORTED_ARC_TESTNET_TOKENS, isSupportedArcTokenSymbol, type SupportedArcTokenSymbol } from '@/constants/tokens';
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.border,
   },
   closeBtn: { padding: 8, width: 40 },
-  headerTitle: { fontSize: FontSize.lg, fontWeight: '700', color: Colors.text1, letterSpacing: -0.2 },
+  headerTitle: { fontFamily: FontFamily.displaySemiBold, fontSize: FontSize.lg, color: Colors.text1, letterSpacing: -0.2 },
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Spacing.lg, gap: Spacing.lg },
   networkBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.surface,
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.border, paddingVertical: 12, paddingLeft: 16,
     paddingRight: 12, width: '100%', gap: 8,
   },
-  addressText: { fontSize: FontSize.sm, color: Colors.text1, fontFamily: 'SpaceMono-Regular', flex: 1 },
+  addressText: { fontSize: FontSize.sm, color: Colors.text1, fontFamily: FontFamily.mono, flex: 1 },
   copyChip: {
     flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: Colors.primaryGlow,
     paddingHorizontal: 8, paddingVertical: 4, borderRadius: Radius.full, borderWidth: 1, borderColor: 'rgba(0,212,255,0.25)',

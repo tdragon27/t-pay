@@ -7,8 +7,8 @@ import * as Clipboard from 'expo-clipboard';
 import Toast from 'react-native-toast-message';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
-import { ARC_CONTRACTS, arcTestnet } from '@/constants/chains';
+import { Colors, FontFamily, FontSize, Radius, Spacing } from '@/constants/theme';
+import { ARC_CONTRACTS, ARC_OFFICIAL_CONTRACTS, arcTestnet } from '@/constants/chains';
 import { useWalletStore } from '@/store/walletStore';
 import { checkArcRpcHealth, type ArcRpcHealth } from '@/services/arcHealthService';
 import { getSupabaseStatus } from '@/services/supabaseClient';
@@ -107,6 +107,8 @@ export default function DeveloperDebugScreen() {
       'App Kit: ' + (appKitConfigured ? 'configured' : 'missing'),
       'Swap: ' + (swapConfigured ? 'configured' : 'missing'),
       'Unified Balance: ' + (unifiedBalanceConfigured ? 'configured' : 'missing'),
+      'Arc Memo: official testnet predeploy configured',
+      'Arc Batch: official Multicall3From predeploy configured',
       'Cached balance: ' + (balanceCache ? balanceCache.totalUsdc + ' USDC' : 'none'),
       'Counts: ' + JSON.stringify(counts),
     ].join('\n');
@@ -149,6 +151,8 @@ export default function DeveloperDebugScreen() {
             <StatusPill label={appKitConfigured ? 'App Kit configured' : 'App Kit missing'} ok={appKitConfigured} />
             <StatusPill label={swapConfigured ? 'Swap configured' : 'Swap missing'} ok={swapConfigured} />
             <StatusPill label={unifiedBalanceConfigured ? 'Unified Balance ready' : 'Unified Balance missing'} ok={unifiedBalanceConfigured} />
+            <StatusPill label="Arc Memo configured" ok={Boolean(ARC_OFFICIAL_CONTRACTS.MEMO)} />
+            <StatusPill label="Batch payouts configured" ok={Boolean(ARC_OFFICIAL_CONTRACTS.MULTICALL3_FROM)} />
           </View>
         </Card>
 
@@ -172,18 +176,18 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: Spacing.md, paddingTop: 8, paddingBottom: 12 },
   iconBtn: { width: 42, height: 42, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.elevated, borderWidth: 1, borderColor: Colors.border },
-  title: { color: Colors.text1, fontSize: 28, fontWeight: '700', letterSpacing: -0.35 },
-  subtitle: { color: Colors.text2, fontSize: FontSize.sm, marginTop: 2 },
+  title: { color: Colors.text1, fontFamily: FontFamily.displayBold, fontSize: 28, letterSpacing: -0.35 },
+  subtitle: { color: Colors.text2, fontFamily: FontFamily.body, fontSize: FontSize.sm, marginTop: 2 },
   content: { padding: Spacing.md, gap: Spacing.md },
   banner: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: Colors.warningBg, borderColor: '#FFB54744' },
-  bannerText: { color: Colors.warning, fontSize: FontSize.md, fontWeight: '700' },
+  bannerText: { color: Colors.warning, fontFamily: FontFamily.bodySemiBold, fontSize: FontSize.md },
   buttonRow: { flexDirection: 'row', gap: 10 },
   button: { flex: 1 },
-  section: { color: Colors.text2, fontSize: FontSize.xs, fontWeight: '700', letterSpacing: 1.1, textTransform: 'uppercase', marginTop: 6 },
+  section: { color: Colors.text2, fontFamily: FontFamily.bodySemiBold, fontSize: FontSize.xs, letterSpacing: 0.2, marginTop: 6 },
   debugRow: { gap: 5, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: Colors.border },
-  rowLabel: { color: Colors.text3, fontSize: FontSize.xs, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8 },
-  rowValue: { color: Colors.text1, fontSize: FontSize.sm, lineHeight: 20 },
+  rowLabel: { color: Colors.text3, fontFamily: FontFamily.bodyMedium, fontSize: FontSize.xs },
+  rowValue: { color: Colors.text1, fontFamily: FontFamily.mono, fontSize: FontSize.xs, lineHeight: 20 },
   statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingVertical: 10 },
-  pill: { borderWidth: 1, borderRadius: Radius.full, paddingHorizontal: 9, paddingVertical: 5, overflow: 'hidden', fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
+  pill: { borderWidth: 1, borderRadius: Radius.full, paddingHorizontal: 9, paddingVertical: 5, overflow: 'hidden', fontFamily: FontFamily.bodySemiBold, fontSize: 10 },
 });
 

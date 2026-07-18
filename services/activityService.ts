@@ -4,10 +4,10 @@ import { ARC_TESTNET_DEFAULTS } from '@/constants/chains';
 import type { PaymentIntent } from '@/services/paymentIntentService';
 import { activityDedupeKey, dedupeByActivityKey } from '@/utils/tpayLogic';
 
-export type ActivityType = 'send' | 'receive' | 'split_payment' | 'merchant_invoice' | 'fx_swap' | 'bridge' | 'passport' | 'request';
+export type ActivityType = 'send' | 'receive' | 'split_payment' | 'merchant_invoice' | 'fx_swap' | 'bridge' | 'passport' | 'request' | 'batch';
 export type ActivityDirection = 'incoming' | 'outgoing' | 'neutral';
 export type ActivityStatus = 'pending' | 'confirmed' | 'failed' | 'cancelled';
-export type ActivitySourceFeature = 'send' | 'receive' | 'split' | 'merchant' | 'fx' | 'bridge' | 'passport' | 'request';
+export type ActivitySourceFeature = 'send' | 'receive' | 'split' | 'merchant' | 'fx' | 'bridge' | 'passport' | 'request' | 'batch';
 export type ActivityCreatedBy = 'user' | 'system' | 'agent';
 export type ActivityRiskLevel = 'low' | 'medium' | 'high';
 
@@ -138,8 +138,8 @@ export async function updateActivity(id: string, patch: Partial<UnifiedActivityI
 
 export function activityFromPaymentIntent(intent: PaymentIntent, overrides?: Partial<UnifiedActivityItem>): UnifiedActivityItem {
   const isIncoming = overrides?.direction ?? (intent.senderWallet ? 'outgoing' : 'incoming');
-  const sourceFeature: ActivitySourceFeature = intent.type === 'split' ? 'split' : intent.type === 'merchant' ? 'merchant' : intent.type === 'request' ? 'request' : 'send';
-  const type: ActivityType = intent.type === 'split' ? 'split_payment' : intent.type === 'merchant' ? 'merchant_invoice' : intent.type === 'request' ? 'request' : 'send';
+  const sourceFeature: ActivitySourceFeature = intent.type === 'split' ? 'split' : intent.type === 'merchant' ? 'merchant' : intent.type === 'request' ? 'request' : intent.type === 'batch' ? 'batch' : 'send';
+  const type: ActivityType = intent.type === 'split' ? 'split_payment' : intent.type === 'merchant' ? 'merchant_invoice' : intent.type === 'request' ? 'request' : intent.type === 'batch' ? 'batch' : 'send';
   return normalizeItem({
     id: overrides?.id ?? `intent_${intent.id}`,
     type,

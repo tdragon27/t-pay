@@ -192,7 +192,7 @@ export default function PicksScreen() {
 
         <Card style={styles.createCard}>
           <View style={styles.sectionTitleRow}>
-            <View><Text style={styles.sectionTitle}>Create a pick</Text><Text style={styles.sectionSub}>Keep questions specific and easy to resolve.</Text></View>
+            <View><Text style={styles.sectionTitle}>Create a Pick</Text><Text style={styles.sectionSub}>Keep questions specific and easy to resolve.</Text></View>
             <TouchableOpacity style={styles.shuffleBtn} onPress={() => setQuestion(SAMPLE_QUESTIONS[(SAMPLE_QUESTIONS.indexOf(question) + 1) % SAMPLE_QUESTIONS.length])}>
               <Ionicons name="sparkles-outline" size={17} color={Colors.primary} />
             </TouchableOpacity>
@@ -205,7 +205,7 @@ export default function PicksScreen() {
           <Button label={creating ? 'Creating...' : 'Create Pick'} loading={creating} disabled={!configured || creating} onPress={handleCreate} />
         </Card>
 
-        <View style={styles.sectionTitleRow}><View><Text style={styles.sectionTitle}>Live picks</Text><Text style={styles.sectionSub}>Tap a card to choose, share QR, or resolve.</Text></View></View>
+        <View style={styles.sectionTitleRow}><View><Text style={styles.sectionTitle}>Live Picks</Text><Text style={styles.sectionSub}>Tap a card to choose, share QR, or resolve.</Text></View></View>
         {loading ? (
           <View style={styles.loadingBox}><ActivityIndicator color={Colors.primary} /><Text style={styles.loadingText}>Reading picks from Arc...</Text></View>
         ) : markets.length === 0 ? (

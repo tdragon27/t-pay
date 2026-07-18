@@ -59,3 +59,8 @@ begin
   perform public.refresh_split_bill_status(participant_record.split_bill_id);
 end;
 $$;
+
+-- Replacing a function restores PUBLIC execute in PostgreSQL unless privileges
+-- are explicitly tightened again. Only the server-side verifier may call it.
+revoke execute on function public.mark_participant_paid(uuid, text, numeric, text) from public, anon, authenticated;
+grant execute on function public.mark_participant_paid(uuid, text, numeric, text) to service_role;

@@ -27,7 +27,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Colors, Radius, FontSize, Spacing } from '@/constants/theme';
+import { Colors, FontFamily, Radius, FontSize, Spacing } from '@/constants/theme';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -65,6 +65,8 @@ export function Button({
   disabled,
   style,
   hitSlop    = DEFAULT_HIT_SLOP,
+  accessibilityLabel,
+  accessibilityState,
   ...rest
 }: ButtonProps) {
   const scale = useSharedValue(1);
@@ -94,6 +96,9 @@ export function Button({
         disabled={isDisabled}
         activeOpacity={0.9}
         hitSlop={resolvedHitSlop}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel ?? label}
+        accessibilityState={{ ...accessibilityState, disabled: Boolean(isDisabled), busy: loading }}
         {...rest}
       >
         <LinearGradient
@@ -146,6 +151,9 @@ export function Button({
       disabled={isDisabled}
       activeOpacity={0.8}
       hitSlop={resolvedHitSlop}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={{ ...accessibilityState, disabled: Boolean(isDisabled), busy: loading }}
       {...rest}
     >
       {loading ? (
@@ -216,12 +224,11 @@ const styles = StyleSheet.create({
   // Label variants
   label: {
     fontSize:      FontSize.md,
-    fontWeight:    '600',
+    fontFamily:    FontFamily.bodySemiBold,
     letterSpacing: 0.3,
   },
   labelPrimary: {
-    color:      Colors.bg,
-    fontWeight: '700',
+    color: Colors.bg,
   },
   labelSecondary: { color: Colors.text1 },
   labelGhost:     { color: Colors.text2 },

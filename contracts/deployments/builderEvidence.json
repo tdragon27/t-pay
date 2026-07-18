@@ -1,0 +1,24 @@
+{
+  "network": "Arc Testnet",
+  "chainId": 5042002,
+  "generatedAt": "2026-07-18T16:49:15.062Z",
+  "deployer": "0x248de490fCE3B639bCAb1A1E1bC96a0298D637F5",
+  "testPayer": "0xAD128DF26a232e3e8A6f3f03E7CE415dEec46543",
+  "amountUsdc": "0.05",
+  "invoice": {
+    "contractAddress": "0x4F558D1BE50c32e599527b18c459353707E04707",
+    "invoiceId": "1",
+    "fundGasTx": "0x18495662a3dc830fe4616b3ef173af23913e7d1e0b4c6a58bf2f78b06d39bee3",
+    "fundTokenTx": "0x3c0825dd7745d5dcbcbf142999331e38de3e66b5496cfa2460906cf825575184",
+    "createTx": "0x7f4ba8503345c2d12c5579b733b383b91bc61cfda18a93c0e7d2a134168a4519",
+    "approveTx": "0xae1cd595a5a3bca17f4ea2c86f7885a200aff17624d45b9a4fa48dae9a189f36",
+    "payTx": "0x52b1fbd7fd2c8d9b9deaed2fc7df40a8cb31b1ec3e8209568b9d74ad40c98754"
+  },
+  "recurring": {
+    "contractAddress": "0x326774E87C37F65449ce509EE4872A58EFA4C64E",
+    "subscriptionId": "1",
+    "approveTx": "0x2fe50a6812cf1a94432ab4dd5a6e56d3e0dc124fe67dc38710bd95dd6cb6d6d9",
+    "createTx": "0xc6e8171a5c6fcfd9732959d9f4c14eeb7a4223e5b4fcb89eb4a773943e93a543",
+    "executeTx": "0x607a9788e342b2ba686b254defe4af9a594202ea227124007680588e694bb4e1"
+  }
+}

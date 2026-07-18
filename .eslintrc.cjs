@@ -27,6 +27,7 @@ module.exports = {
     'tpay/',
     '{app}/',
     'contracts/',
+    'supabase/functions/verify-split-payment/',
     'backend-samples/next-app/.next/',
     'expo-env.d.ts',
   ],

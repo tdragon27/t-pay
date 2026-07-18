@@ -30,4 +30,22 @@ module.exports = {
       accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
     },
   },
+  etherscan: {
+    apiKey: {
+      arcTestnet: "blockscout",
+    },
+    customChains: [
+      {
+        network: "arcTestnet",
+        chainId: ARC_CHAIN_ID,
+        urls: {
+          apiURL: "https://testnet.arcscan.app/api",
+          browserURL: "https://testnet.arcscan.app",
+        },
+      },
+    ],
+  },
+  sourcify: {
+    enabled: false,
+  },
 };

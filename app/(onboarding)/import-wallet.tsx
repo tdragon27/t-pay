@@ -28,7 +28,7 @@ import {
 } from '@/lib/wallet';
 import { saveAddress, markOnboardingComplete } from '@/utils/storage';
 import { useWalletStore } from '@/store/walletStore';
-import { Colors, FontSize, Spacing, Radius } from '@/constants/theme';
+import { Colors, FontFamily, FontSize, Spacing, Radius } from '@/constants/theme';
 
 type Mode = 'seed' | 'privatekey';
 
@@ -66,10 +66,10 @@ export default function ImportWalletScreen() {
 
       await saveWalletSecurely(wallet);
 
-      // Audit step: ensure secure-store roundtrip returns the same address.
+      // Audit step: ensure the active storage adapter returns the same address.
       const storedPk = await loadPrivateKey();
       if (!storedPk) {
-        throw new Error('Saved private key was not found in secure storage.');
+        throw new Error('Saved private key could not be verified.');
       }
       const restored = await importFromPrivateKey(storedPk);
       if (restored.address.toLowerCase() !== wallet.address.toLowerCase()) {
@@ -140,6 +140,15 @@ export default function ImportWalletScreen() {
             </Text>
           </Card>
 
+          {Platform.OS === 'web' && (
+            <View style={styles.browserNotice}>
+              <Ionicons name="desktop-outline" size={18} color={Colors.primary} />
+              <Text style={styles.browserNoticeText}>
+                Browser preview keeps this wallet only until the tab reloads or closes. Use the mobile app for persistent secure storage.
+              </Text>
+            </View>
+          )}
+
           {/* Input */}
           <Input
             label={mode === 'seed' ? 'Seed Phrase' : 'Private Key'}
@@ -173,7 +182,9 @@ export default function ImportWalletScreen() {
           <View style={styles.warnRow}>
             <Ionicons name="shield-outline" size={16} color={Colors.text3} />
             <Text style={styles.warnText}>
-              Your key never leaves this device. It's stored in encrypted device storage.
+              {Platform.OS === 'web'
+                ? 'Your key stays in this browser tab and is not written to local storage.'
+                : "Your key never leaves this device. It's stored in encrypted device storage."}
             </Text>
           </View>
 
@@ -205,7 +216,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
   },
   backBtn:      { padding: 8 },
-  headerTitle:  { fontSize: FontSize.lg, fontWeight: '600', color: Colors.text1 },
+  headerTitle:  { fontFamily: FontFamily.displaySemiBold, fontSize: FontSize.lg, color: Colors.text1 },
   content: {
     paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.xxl,
@@ -248,6 +259,23 @@ const styles = StyleSheet.create({
     color: Colors.text2,
     flex: 1,
     lineHeight: 20,
+  },
+  browserNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    padding: 12,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(0,212,255,0.24)',
+    backgroundColor: 'rgba(0,212,255,0.07)',
+  },
+  browserNoticeText: {
+    flex: 1,
+    color: Colors.text2,
+    fontFamily: FontFamily.body,
+    fontSize: FontSize.xs,
+    lineHeight: 18,
   },
   seedInput:  { minHeight: 100, textAlignVertical: 'top', paddingTop: 12 },
   warnRow: {

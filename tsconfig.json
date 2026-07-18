@@ -38,6 +38,7 @@
     "node_modules",
     "_legacy-copy",
     "tpay",
-    "backend-samples"
+    "backend-samples",
+    "supabase/functions/verify-split-payment"
   ]
 }

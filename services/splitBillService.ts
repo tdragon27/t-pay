@@ -504,47 +504,23 @@ export async function createSplitBill(input: {
   }
 }
 
-async function markParticipantPaidRpc(
+async function verifySplitPaymentRemote(
   supabase: ReturnType<typeof requireSupabaseClient>,
-  input: { participantId: string; txHash?: string; amountUsdc?: string | number | null; payerWallet?: string | null },
+  input: { splitId: string; participantId?: string; txHash: string },
 ) {
-  const payload = {
-    p_participant_id: input.participantId,
-    p_tx_hash: input.txHash ?? null,
-    p_amount_usdc: input.amountUsdc == null ? null : amountNumber(input.amountUsdc),
-    p_payer_wallet: input.payerWallet ?? null,
-  };
-  const { error } = await supabase.rpc('mark_participant_paid', payload);
-  if (!error) return;
+  if (!/^0x[0-9a-f]{64}$/i.test(input.txHash)) {
+    throw new Error('A confirmed Arc transaction hash is required.');
+  }
 
-  const canFallback = error.message.includes('p_payer_wallet') || error.message.toLowerCase().includes('function');
-  if (!canFallback) throw new Error(error.message);
-
-  const { error: fallbackError } = await supabase.rpc('mark_participant_paid', {
-    p_participant_id: payload.p_participant_id,
-    p_tx_hash: payload.p_tx_hash,
-    p_amount_usdc: payload.p_amount_usdc,
+  const { data, error } = await supabase.functions.invoke('verify-split-payment', {
+    body: {
+      splitId: input.splitId,
+      participantId: input.participantId ?? null,
+      txHash: input.txHash,
+    },
   });
-  if (fallbackError) throw new Error(fallbackError.message);
-}
-
-async function resetParticipantPaid(supabase: ReturnType<typeof requireSupabaseClient>, splitId: string, participantId: string) {
-  const { error } = await supabase
-    .from('participants')
-    .update({ paid: false, paid_at: null, tx_hash: null, payer_wallet: null, amount_paid_usdc: null })
-    .eq('id', participantId)
-    .eq('split_bill_id', splitId);
-  if (!error) return;
-
-  const canFallback = error.message.includes('payer_wallet') || error.message.includes('amount_paid_usdc');
-  if (!canFallback) throw new Error(error.message);
-
-  const { error: fallbackError } = await supabase
-    .from('participants')
-    .update({ paid: false, paid_at: null, tx_hash: null })
-    .eq('id', participantId)
-    .eq('split_bill_id', splitId);
-  if (fallbackError) throw new Error(fallbackError.message);
+  if (error) throw new Error('Unable to verify the Arc payment right now.');
+  if (!data?.ok) throw new Error(data?.error ?? 'Arc payment verification failed.');
 }
 export async function updateSplitParticipantPaid(splitId: string, participantId: string, paid: boolean, txHash?: string) {
   const supabase = getSupabaseClient();
@@ -575,11 +551,8 @@ export async function updateSplitParticipantPaid(splitId: string, participantId:
       return;
     }
 
-    try {
-      await markParticipantPaidRpc(supabase, { participantId, txHash, amountUsdc: null });
-    } catch {
-      await setLocalParticipantPaid({ splitId, participantId, paid: true, txHash, amountUsdc: participant.amountUsdc });
-    }
+    if (!txHash) throw new Error('Manual shared payment updates are disabled. Submit the USDC transfer first.');
+    await verifySplitPaymentRemote(supabase, { splitId, participantId, txHash });
     await recordSplitActivity({ splitId, participantId, txHash, amountUsdc: participant.amountUsdc, manual: true });
     return;
   }
@@ -590,12 +563,7 @@ export async function updateSplitParticipantPaid(splitId: string, participantId:
     return;
   }
 
-  try {
-    await resetParticipantPaid(supabase, splitId, participantId);
-    await supabase.rpc('refresh_split_bill_status', { target_bill_id: splitId });
-  } catch {
-    await setLocalParticipantPaid({ splitId, participantId, paid: false });
-  }
+  throw new Error('Verified onchain payments cannot be manually reversed.');
 }
 async function recordSplitActivity(input: {
   splitId: string;
@@ -687,14 +655,14 @@ export async function recordSplitPayment(input: { splitId?: string; participantI
         payerWallet: input.payerWallet ?? null,
       });
     } else {
+      if (!input.txHash) throw new Error('A confirmed Arc transaction hash is required.');
       try {
-        await markParticipantPaidRpc(supabase, {
+        await verifySplitPaymentRemote(supabase, {
+          splitId: input.splitId,
           participantId: input.participantId,
           txHash: input.txHash,
-          amountUsdc: input.amountUsdc,
-          payerWallet: input.payerWallet ?? null,
         });
-      } catch {
+      } catch (error) {
         await setLocalParticipantPaid({
           splitId: input.splitId,
           participantId: input.participantId,
@@ -703,6 +671,7 @@ export async function recordSplitPayment(input: { splitId?: string; participantI
           amountUsdc: input.amountUsdc,
           payerWallet: input.payerWallet ?? null,
         });
+        throw error;
       }
     }
     await recordSplitActivity({
@@ -718,14 +687,15 @@ export async function recordSplitPayment(input: { splitId?: string; participantI
   if (!supabase || isLocalSplitId(input.splitId)) {
     await addLocalSplitReceived({ splitId: input.splitId, amountUsdc: input.amountUsdc });
   } else {
+    if (!input.txHash) throw new Error('A confirmed Arc transaction hash is required.');
     try {
-      const { error } = await supabase.rpc('record_split_received', {
-        p_split_bill_id: input.splitId,
-        p_amount_usdc: amountNumber(input.amountUsdc),
+      await verifySplitPaymentRemote(supabase, {
+        splitId: input.splitId,
+        txHash: input.txHash,
       });
-      if (error) throw new Error(error.message);
-    } catch {
+    } catch (error) {
       await addLocalSplitReceived({ splitId: input.splitId, amountUsdc: input.amountUsdc });
+      throw error;
     }
   }
   await recordSplitActivity({

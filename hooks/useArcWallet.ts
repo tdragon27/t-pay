@@ -11,8 +11,7 @@ import { saveAddress, clearAllStorage } from '@/utils/storage';
 import { useWalletStore } from '@/store/walletStore';
 import type { Hex } from 'viem';
 
-// OK: FIX: Timeout safety net ? if loadPrivateKey() is treo over 5s,
-// setLoaded(true) váº«n Ä‘Æ°á»£c gá»i Ä‘á»ƒ thoÃ¡t khá»i mÃ n hÃ¬nh spinner.
+// Timeout safety net: leave the boot screen even if storage stalls.
 const INIT_TIMEOUT_MS = 5_000;
 
 export function useArcWallet() {
@@ -29,7 +28,7 @@ export function useArcWallet() {
   const initWallet = useCallback(async () => {
     // OK: Safety net: force setLoaded(true) after INIT_TIMEOUT_MS
     const timer = setTimeout(() => {
-      console.warn('[useArcWallet] init timed out ? forcing loaded state');
+      console.warn('[useArcWallet] init timed out; forcing loaded state');
       markLoaded();
     }, INIT_TIMEOUT_MS);
 

@@ -36,7 +36,7 @@ import {
   shortenAddress,
   shortenHash,
 } from '@/utils/format';
-import { Colors, FontSize, Spacing, Radius } from '@/constants/theme';
+import { Colors, FontFamily, FontSize, Spacing, Radius } from '@/constants/theme';
 import { useMultiChainBalance } from '@/hooks/useMultiChainBalance';
 import { notifyBridgeSubmitted } from '@/services/notificationService';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
@@ -321,7 +321,7 @@ export default function BridgeScreen() {
               onPress={() => setAmount(direction === 'fromArc' ? usdcBalanceFormatted.replace(/,/g, '') : selectedExternalBalance?.balance.replace(/,/g, '') ?? '')}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Text style={{ fontSize: FontSize.xs, color: Colors.primary, fontWeight: '600' }}>MAX</Text>
+              <Text style={{ fontFamily: FontFamily.bodySemiBold, fontSize: FontSize.xs, color: Colors.primary }}>MAX</Text>
             </TouchableOpacity>
           }
           hint={`Source balance: $${direction === 'fromArc' ? usdcBalanceFormatted : selectedExternalBalance?.balance ?? '0.00'}`}
@@ -526,10 +526,10 @@ function QuoteRow({ label, value, mono, highlight }: {
 
 const qStyles = StyleSheet.create({
   row:       { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5 },
-  label:     { fontSize: FontSize.sm, color: Colors.text2 },
-  value:     { fontSize: FontSize.sm, color: Colors.text1, fontWeight: '500' },
-  mono:      { fontFamily: 'SpaceMono-Regular', fontSize: FontSize.xs },
-  highlight: { color: Colors.primary, fontWeight: '700' },
+  label:     { fontFamily: FontFamily.body, fontSize: FontSize.sm, color: Colors.text2 },
+  value:     { fontFamily: FontFamily.bodyMedium, fontSize: FontSize.sm, color: Colors.text1 },
+  mono:      { fontFamily: FontFamily.mono, fontSize: FontSize.xs },
+  highlight: { color: Colors.primary, fontFamily: FontFamily.bodySemiBold },
 });
 
 // --- Styles -------------------------------------------------------------------
@@ -542,7 +542,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: Colors.border,
   },
   closeBtn:    { padding: 8, width: 40 },
-  headerTitle: { fontSize: FontSize.lg, fontWeight: '600', color: Colors.text1 },
+  headerTitle: { fontFamily: FontFamily.displaySemiBold, fontSize: FontSize.lg, color: Colors.text1 },
   content:     { padding: Spacing.md, gap: Spacing.md, paddingBottom: Spacing.xxl },
 
   directionCard: { gap: 10 },
@@ -557,7 +557,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   directionBtnActive: { borderColor: Colors.primaryDim, backgroundColor: Colors.primaryGlow },
-  directionText: { color: Colors.text2, fontSize: FontSize.xs, fontWeight: '800' },
+  directionText: { color: Colors.text2, fontFamily: FontFamily.bodySemiBold, fontSize: FontSize.xs },
   directionTextActive: { color: Colors.primary },
   // Route row
   routeRow: {
@@ -572,50 +572,50 @@ const styles = StyleSheet.create({
   },
   chainChipActive:  { borderColor: Colors.primaryDim, backgroundColor: Colors.primaryGlow },
   chainChipEmoji:   { fontSize: 18 },
-  chainChipName:    { fontSize: FontSize.sm, color: Colors.text1, fontWeight: '600' },
+  chainChipName:    { fontFamily: FontFamily.bodySemiBold, fontSize: FontSize.sm, color: Colors.text1 },
 
   // Chain picker
   chainPickerCard:  { gap: 4 },
-  pickerTitle:      { fontSize: FontSize.sm, fontWeight: '600', color: Colors.text2, marginBottom: 8 },
+  pickerTitle:      { fontFamily: FontFamily.bodySemiBold, fontSize: FontSize.sm, color: Colors.text2, marginBottom: 8 },
   chainOption: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     padding: 12, borderRadius: Radius.md,
   },
   chainOptionActive: { backgroundColor: Colors.primaryGlow },
   chainEmoji:        { fontSize: 24 },
-  chainOptionName:   { fontSize: FontSize.md, color: Colors.text1, fontWeight: '500' },
-  chainOptionSub:    { fontSize: FontSize.xs, color: Colors.text3 },
+  chainOptionName:   { fontFamily: FontFamily.bodyMedium, fontSize: FontSize.md, color: Colors.text1 },
+  chainOptionSub:    { fontFamily: FontFamily.body, fontSize: FontSize.xs, color: Colors.text3 },
 
   // CCTP info
   cctpCard:  { gap: 8 },
   cctpRow:   { flexDirection: 'row', alignItems: 'center', gap: 8 },
   cctpBadge: {
-    fontSize: 10, fontWeight: '800', color: Colors.bg,
+    fontFamily: FontFamily.bodySemiBold, fontSize: 10, color: Colors.bg,
     backgroundColor: Colors.primary, paddingHorizontal: 7, paddingVertical: 2,
     borderRadius: 4, letterSpacing: 0.5,
   },
-  cctpTitle: { fontSize: FontSize.sm, fontWeight: '600', color: Colors.text1 },
-  cctpDesc:  { fontSize: FontSize.xs, color: Colors.text2, lineHeight: 18 },
+  cctpTitle: { fontFamily: FontFamily.bodySemiBold, fontSize: FontSize.sm, color: Colors.text1 },
+  cctpDesc:  { fontFamily: FontFamily.body, fontSize: FontSize.xs, color: Colors.text2, lineHeight: 18 },
 
   // Confirm
   quoteHero: { alignItems: 'center', paddingVertical: Spacing.lg, gap: 6 },
-  quoteYouSend: { fontSize: FontSize.sm, color: Colors.text3, textTransform: 'uppercase', letterSpacing: 0.8 },
-  quoteAmount:  { fontSize: 40, fontWeight: '800', color: Colors.text1, letterSpacing: -1.5 },
+  quoteYouSend: { fontFamily: FontFamily.bodyMedium, fontSize: FontSize.sm, color: Colors.text3 },
+  quoteAmount:  { fontFamily: FontFamily.displayBold, fontSize: 40, color: Colors.text1, letterSpacing: -1.5 },
   quoteCard:    { gap: 2 },
   divider:      { height: 1, backgroundColor: Colors.border, marginVertical: 8 },
   errorCard: {
     flexDirection: 'row', gap: 10, alignItems: 'flex-start',
     backgroundColor: Colors.errorBg, borderColor: Colors.error,
   },
-  errorText: { fontSize: FontSize.sm, color: Colors.error, flex: 1 },
+  errorText: { fontFamily: FontFamily.body, fontSize: FontSize.sm, color: Colors.error, flex: 1 },
 
   // Progress
   progressContainer: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
     padding: Spacing.lg, gap: Spacing.lg,
   },
-  progressTitle: { fontSize: FontSize.xxl, fontWeight: '700', color: Colors.text1 },
-  progressSub:   { fontSize: FontSize.sm, color: Colors.text3 },
+  progressTitle: { fontFamily: FontFamily.displayBold, fontSize: FontSize.xxl, color: Colors.text1 },
+  progressSub:   { fontFamily: FontFamily.body, fontSize: FontSize.sm, color: Colors.text3 },
   progressSteps: { width: '100%', gap: 16 },
   progressStep:  { flexDirection: 'row', alignItems: 'center', gap: 14 },
   stepCircle: {
@@ -625,24 +625,24 @@ const styles = StyleSheet.create({
   },
   stepDone:        { backgroundColor: Colors.success, borderColor: Colors.success },
   stepActive:      { borderColor: Colors.primary, backgroundColor: Colors.primaryGlow },
-  stepLabel:       { fontSize: FontSize.md, color: Colors.text3, flex: 1 },
+  stepLabel:       { fontFamily: FontFamily.body, fontSize: FontSize.md, color: Colors.text3, flex: 1 },
   stepLabelDone:   { color: Colors.text2, textDecorationLine: 'line-through' },
-  stepLabelActive: { color: Colors.primary, fontWeight: '600' },
+  stepLabelActive: { color: Colors.primary, fontFamily: FontFamily.bodySemiBold },
 
   // Done
   doneContainer: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
     padding: Spacing.lg, gap: 12,
   },
-  doneTitle:  { fontSize: FontSize.hero, fontWeight: '800', color: Colors.text1 },
-  doneAmount: { fontSize: FontSize.xxl, fontWeight: '700', color: Colors.success },
-  doneSub:    { fontSize: FontSize.md, color: Colors.text2 },
+  doneTitle:  { fontFamily: FontFamily.displayBold, fontSize: FontSize.hero, color: Colors.text1 },
+  doneAmount: { fontFamily: FontFamily.displayBold, fontSize: FontSize.xxl, color: Colors.success },
+  doneSub:    { fontFamily: FontFamily.body, fontSize: FontSize.md, color: Colors.text2 },
   explorerLink: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: Colors.elevated, paddingHorizontal: 12, paddingVertical: 6,
     borderRadius: Radius.full, borderWidth: 1, borderColor: Colors.border,
   },
-  explorerText: { fontSize: FontSize.xs, color: Colors.primary, fontFamily: 'SpaceMono-Regular' },
+  explorerText: { fontSize: FontSize.xs, color: Colors.primary, fontFamily: FontFamily.mono },
 });
 
 

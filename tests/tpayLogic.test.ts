@@ -19,6 +19,7 @@ import { resolveArcTestnetRpcUrl } from '../constants/chains';
 import { assertSuccessfulReceipt } from '../lib/transactionReceipt';
 import { MAX_PAYMENT_REQUEST_LENGTH, parsePaymentRequest } from '../services/paymentRequestService';
 import { decimalInputToBigInt, getDecimalInputError, normalizeDecimalInput, sanitizeDecimalInput } from '../utils/format';
+import { buildUniversalPaymentPlan, validateBatchDraft } from '../utils/universalPayment';
 
 test('payment intent status transitions follow the signing lifecycle', () => {
   assert.equal(
@@ -229,4 +230,70 @@ test('payment intent amount normalization preserves token precision', () => {
   assert.equal(normalizePaymentAmount('001.23000000'), '1.23');
   assert.equal(normalizePaymentAmount('0,000127'), '0.000127');
   assert.equal(normalizePaymentAmount('invalid'), '0');
+});
+
+test('universal payment routing never pretends an unavailable route is executable', () => {
+  assert.equal(buildUniversalPaymentPlan({
+    tokenSymbol: 'USDC',
+    amountRaw: 1_000_000n,
+    arcBalanceRaw: 2_000_000n,
+    unifiedConfigured: false,
+    memoRequested: false,
+    hasAlternativeArcBalance: false,
+  }).route, 'direct');
+
+  assert.equal(buildUniversalPaymentPlan({
+    tokenSymbol: 'EURC',
+    amountRaw: 1_000_000n,
+    arcBalanceRaw: 2_000_000n,
+    unifiedConfigured: false,
+    memoRequested: true,
+    hasAlternativeArcBalance: false,
+  }).route, 'memo');
+
+  assert.equal(buildUniversalPaymentPlan({
+    tokenSymbol: 'USDC',
+    amountRaw: 2_000_000n,
+    arcBalanceRaw: 500_000n,
+    unifiedUsdcRaw: 3_000_000n,
+    unifiedConfigured: true,
+    memoRequested: false,
+    hasAlternativeArcBalance: false,
+  }).route, 'unified_balance');
+
+  const swapFirst = buildUniversalPaymentPlan({
+    tokenSymbol: 'EURC',
+    amountRaw: 2_000_000n,
+    arcBalanceRaw: 0n,
+    unifiedConfigured: false,
+    memoRequested: false,
+    hasAlternativeArcBalance: true,
+  });
+  assert.equal(swapFirst.route, 'swap_first');
+  assert.equal(swapFirst.canSubmit, false);
+});
+
+test('batch payout validation enforces unique recipients and total balance', () => {
+  const first = '0x1111111111111111111111111111111111111111';
+  const second = '0x2222222222222222222222222222222222222222';
+  const valid = validateBatchDraft([
+    { address: first, amount: '1.25' },
+    { address: second, amount: '2.75' },
+  ], 5_000_000n);
+  assert.equal(valid.valid, true);
+  assert.equal(valid.totalRaw, 4_000_000n);
+
+  const duplicate = validateBatchDraft([
+    { address: first, amount: '1' },
+    { address: first.toUpperCase().replace('0X', '0x'), amount: '1' },
+  ], 5_000_000n);
+  assert.equal(duplicate.valid, false);
+  assert.match(duplicate.error ?? '', /unique/);
+
+  const insufficient = validateBatchDraft([
+    { address: first, amount: '3' },
+    { address: second, amount: '3' },
+  ], 5_000_000n);
+  assert.equal(insufficient.valid, false);
+  assert.match(insufficient.error ?? '', /Insufficient/);
 });

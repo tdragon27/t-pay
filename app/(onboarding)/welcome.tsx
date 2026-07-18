@@ -22,6 +22,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { FontFamily } from '@/constants/theme';
+
 export default function WelcomeScreen() {
   const router = useRouter();
   const { height, width } = useWindowDimensions();
@@ -92,7 +94,7 @@ export default function WelcomeScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.logoCard}
             >
-              <Text style={styles.logoMark}>A</Text>
+              <Text style={styles.logoMark}>T</Text>
             </LinearGradient>
           </LinearGradient>
 
@@ -223,15 +225,15 @@ const styles = StyleSheet.create({
   },
   logoMark: {
     color: '#FFFFFF',
+    fontFamily: FontFamily.displayBold,
     fontSize: 34,
-    fontWeight: '800',
     letterSpacing: -1.2,
   },
   brandName: {
     color: '#F6F8FF',
+    fontFamily: FontFamily.displayBold,
     fontSize: 36,
     lineHeight: 42,
-    fontWeight: '800',
     letterSpacing: -1.1,
   },
   testnetBadge: {
@@ -254,8 +256,8 @@ const styles = StyleSheet.create({
   },
   testnetText: {
     color: '#8EEBFF',
+    fontFamily: FontFamily.bodySemiBold,
     fontSize: 11,
-    fontWeight: '700',
     letterSpacing: 1.35,
   },
   heroBlock: {
@@ -264,9 +266,9 @@ const styles = StyleSheet.create({
   },
   heroLine: {
     color: '#F6F8FF',
+    fontFamily: FontFamily.displayBold,
     fontSize: 34,
     lineHeight: 40,
-    fontWeight: '800',
     letterSpacing: -1.15,
     textAlign: 'center',
   },
@@ -281,9 +283,9 @@ const styles = StyleSheet.create({
     maxWidth: 330,
     marginTop: 18,
     color: '#9B9DB8',
+    fontFamily: FontFamily.body,
     fontSize: 15,
     lineHeight: 22,
-    fontWeight: '500',
     textAlign: 'center',
   },
   actions: {
@@ -310,8 +312,8 @@ const styles = StyleSheet.create({
   },
   primaryText: {
     color: '#061018',
+    fontFamily: FontFamily.bodySemiBold,
     fontSize: 16,
-    fontWeight: '800',
     letterSpacing: -0.1,
   },
   secondaryButton: {
@@ -326,16 +328,16 @@ const styles = StyleSheet.create({
   },
   secondaryText: {
     color: '#EEF2FF',
+    fontFamily: FontFamily.bodySemiBold,
     fontSize: 16,
-    fontWeight: '700',
     letterSpacing: -0.05,
   },
   disclaimer: {
     marginTop: 6,
     color: '#676B86',
+    fontFamily: FontFamily.body,
     fontSize: 12,
     lineHeight: 18,
-    fontWeight: '500',
     textAlign: 'center',
   },
 });

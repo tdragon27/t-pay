@@ -1,191 +1,239 @@
-﻿import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Platform,
   RefreshControl,
   ScrollView,
-  StyleProp,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  ViewStyle,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { useBalance } from '@/hooks/useBalance';
-import { useTransactions } from '@/hooks/useTransactions';
-import { useArcHealth } from '@/hooks/useArcHealth';
-import { usePaymentDashboard } from '@/hooks/usePaymentDashboard';
-import { ActivePaymentsSection, LatestActivityPreview, StablecoinRailsSection } from '@/components/payment/PaymentDashboardSections';
-import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
-import { useWalletStore } from '@/store/walletStore';
-import { shortenAddress } from '@/utils/format';
-import { copyWalletAddress } from '@/utils/copyWalletAddress';
-import { SUPPORTED_ARC_TESTNET_TOKENS } from '@/constants/tokens';
 
-type ActionRoute = '/send' | '/receive' | '/split-bill' | '/fx' | '/bridge' | '/merchant' | '/(tabs)/profile';
+import { ActivePaymentsSection, LatestActivityPreview } from '@/components/payment/PaymentDashboardSections';
+import { RecentPeopleSection } from '@/components/payment/RecentPeopleSection';
+import { TpayMark } from '@/components/brand/TpayMark';
+import { AnimatedBalanceText } from '@/components/ui/AnimatedBalanceText';
+import { AnimatedGlassBorder } from '@/components/ui/AnimatedGlassBorder';
+import { PressScale } from '@/components/ui/PressScale';
+import { StatusPulse } from '@/components/ui/StatusPulse';
+import { ActionColors, Colors, FontFamily, FontSize, Spacing } from '@/constants/theme';
+import { SUPPORTED_ARC_TESTNET_TOKENS } from '@/constants/tokens';
+import { useArcHealth } from '@/hooks/useArcHealth';
+import { useBalance } from '@/hooks/useBalance';
+import { usePaymentDashboard } from '@/hooks/usePaymentDashboard';
+import { useTransactions } from '@/hooks/useTransactions';
+import { useWalletStore } from '@/store/walletStore';
+import { copyWalletAddress } from '@/utils/copyWalletAddress';
+import { shortenAddress, timeAgo } from '@/utils/format';
+
+type IconName = keyof typeof Ionicons.glyphMap;
 
 interface HomeAction {
   label: string;
-  helper: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  route: ActionRoute;
+  icon: IconName;
+  route: string;
   accent: string;
-  gradient: readonly [string, string];
 }
+
+const HOME_BORDER = 'rgba(225,247,255,0.09)';
+const HOME_SURFACE = '#0D141D';
+const HOME_RADIUS = 22;
+const HOME_DEPTH = {
+  shadowColor: '#000000',
+  shadowOpacity: 0.18,
+  shadowRadius: 16,
+  shadowOffset: { width: 0, height: 8 },
+  elevation: 4,
+} as const;
 
 const PRIMARY_ACTIONS: HomeAction[] = [
-  { label: 'Send', helper: 'Transfer', icon: 'paper-plane-outline', route: '/send', accent: '#19E6FF', gradient: ['rgba(25,230,255,0.24)', 'rgba(39,117,202,0.10)'] },
-  { label: 'Receive', helper: 'Smart QR', icon: 'qr-code-outline', route: '/receive', accent: '#6FA8FF', gradient: ['rgba(111,168,255,0.22)', 'rgba(39,117,202,0.09)'] },
-  { label: 'Split', helper: 'Group pay', icon: 'people-outline', route: '/split-bill', accent: '#8B79FF', gradient: ['rgba(139,121,255,0.23)', 'rgba(39,117,202,0.08)'] },
-  { label: 'Merchant QR', helper: 'Request', icon: 'storefront-outline', route: '/merchant', accent: '#2DE2C5', gradient: ['rgba(45,226,197,0.20)', 'rgba(39,117,202,0.08)'] },
+  { label: 'Pay', icon: 'arrow-up-outline', route: '/send', accent: ActionColors.pay },
+  { label: 'Request', icon: 'arrow-down-outline', route: '/smart-qr', accent: ActionColors.request },
+  { label: 'Split', icon: 'people-outline', route: '/split-bill', accent: ActionColors.split },
+  { label: 'Swap', icon: 'swap-horizontal-outline', route: '/fx', accent: ActionColors.swap },
 ];
 
-const SECONDARY_ACTIONS: HomeAction[] = [
-  { label: 'Swap', helper: '', icon: 'swap-horizontal-outline', route: '/fx', accent: '#8B79FF', gradient: ['rgba(139,121,255,0.16)', 'rgba(255,255,255,0.03)'] },
-  { label: 'Bridge', helper: '', icon: 'git-compare-outline', route: '/bridge', accent: '#19E6FF', gradient: ['rgba(25,230,255,0.15)', 'rgba(255,255,255,0.03)'] },
-  { label: 'Profile', helper: '', icon: 'person-circle-outline', route: '/(tabs)/profile', accent: '#A8B1FF', gradient: ['rgba(168,177,255,0.13)', 'rgba(255,255,255,0.03)'] },
-];
-
-function formatUsd(value: number, digits = 2) {
-  return `$${value.toLocaleString('en-US', {
-    minimumFractionDigits: digits,
-    maximumFractionDigits: digits,
-  })}`;
-}
-
-function GradientOrb({ style, colors }: { style?: StyleProp<ViewStyle>; colors: readonly [string, string] }) {
+function HeaderButton({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
   return (
-    <LinearGradient
-      colors={colors}
-      start={{ x: 0.15, y: 0.1 }}
-      end={{ x: 0.85, y: 1 }}
-      style={[styles.gradientOrb, style]}
-    />
+    <PressScale
+      style={styles.headerButton}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <View style={styles.headerButtonContent}>
+        <Ionicons name={icon} size={19} color={Colors.text1} />
+      </View>
+    </PressScale>
   );
 }
 
-function HeaderButton({ icon, onPress }: { icon: keyof typeof Ionicons.glyphMap; onPress: () => void }) {
-  return (
-    <TouchableOpacity style={styles.headerButton} onPress={onPress} activeOpacity={0.82}>
-      <LinearGradient colors={['rgba(255,255,255,0.10)', 'rgba(255,255,255,0.035)']} style={styles.headerButtonGradient}>
-        <Ionicons name={icon} size={18} color={Colors.text1} />
-      </LinearGradient>
-    </TouchableOpacity>
-  );
-}
-
-function ActionTile({ action, compact = false }: { action: HomeAction; compact?: boolean }) {
+function MainAction({ action }: { action: HomeAction }) {
   const router = useRouter();
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.82}
-      style={compact ? styles.secondaryActionShadow : styles.actionShadow}
-      onPress={() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        router.push(action.route as any);
-      }}
+    <PressScale
+      style={styles.mainAction}
+      onPress={() => router.push(action.route as any)}
+      accessibilityRole="button"
+      accessibilityLabel={action.label}
     >
-      <LinearGradient
-        colors={action.gradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={compact ? styles.secondaryActionTile : styles.actionTile}
-      >
-        <View style={[compact ? styles.secondaryActionIcon : styles.actionIcon, { shadowColor: action.accent }]}>
-          <LinearGradient
-            colors={[`${action.accent}32`, 'rgba(255,255,255,0.04)']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={compact ? styles.secondaryActionIconGradient : styles.actionIconGradient}
-          >
-            <Ionicons name={action.icon} size={compact ? 17 : 22} color={action.accent} />
-          </LinearGradient>
+      <View style={styles.mainActionContent}>
+        <View
+          style={[
+            styles.mainActionIcon,
+            { backgroundColor: `${action.accent}12`, borderColor: `${action.accent}32` },
+          ]}
+        >
+          <Ionicons name={action.icon} size={22} color={action.accent} />
         </View>
-        <View style={styles.actionCopy}>
-          <Text style={compact ? styles.secondaryActionLabel : styles.actionLabel} numberOfLines={1}>{action.label}</Text>
-          {!compact && <Text style={styles.actionHelper} numberOfLines={1}>{action.helper}</Text>}
-        </View>
-      </LinearGradient>
-    </TouchableOpacity>
+        <Text style={styles.mainActionLabel}>{action.label}</Text>
+      </View>
+    </PressScale>
   );
 }
 
-function AssetsMiniCard({ tokenBalances, hidden }: { tokenBalances: ReturnType<typeof useWalletStore.getState>['tokenBalances']; hidden: boolean }) {
+function AssetList({
+  balances,
+  hidden,
+}: {
+  balances: ReturnType<typeof useWalletStore.getState>['tokenBalances'];
+  hidden: boolean;
+}) {
   return (
-    <LinearGradient colors={['rgba(255,255,255,0.075)', 'rgba(255,255,255,0.028)']} style={styles.assetsCard}>
-      <View style={styles.assetsHeader}>
-        <View>
-          <Text style={styles.assetsTitle}>Arc Assets</Text>
-          <Text style={styles.assetsSub}>USDC, EURC, and cirBTC · Testnet only</Text>
-        </View>
-        <View style={styles.assetsBadge}>
-          <Text style={styles.assetsBadgeText}>Testnet</Text>
-        </View>
+    <View style={styles.assetsSection}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Assets</Text>
+        <Text style={styles.sectionContext}>ARC TESTNET</Text>
       </View>
+      <View style={styles.assetList}>
+        <AnimatedGlassBorder
+          borderRadius={HOME_RADIUS}
+          duration={11500}
+          enabled
+          intensity="subtle"
+        />
+        {SUPPORTED_ARC_TESTNET_TOKENS.map((token, index) => {
+          const state = balances[token.symbol];
+          const value = hidden
+            ? '••••'
+            : state?.error
+              ? '—'
+              : state?.isLoading
+                ? '…'
+                : state?.formatted ?? '0';
+          const subtitle = token.symbol === 'USDC'
+            ? 'USD Coin'
+            : token.symbol === 'EURC'
+              ? 'Euro Coin'
+              : token.name;
 
-      <View style={styles.assetRows}>
-        {SUPPORTED_ARC_TESTNET_TOKENS.map((token) => {
-          const balance = tokenBalances[token.symbol];
-          const value = hidden ? '\u2022\u2022\u2022\u2022' : balance?.error ? '\u2014' : balance?.formatted ?? '0.00';
           return (
-            <View key={token.symbol} style={styles.assetRow}>
-              <LinearGradient colors={[token.accent + '2A', 'rgba(255,255,255,0.035)']} style={styles.assetIcon}>
+            <View key={token.symbol} style={[styles.assetRow, index > 0 && styles.assetRowDivider]}>
+              <View style={[styles.assetIcon, { backgroundColor: `${token.accent}12` }]}>
                 <Text style={[styles.assetIconText, { color: token.accent }]}>{token.iconLabel}</Text>
-              </LinearGradient>
-              <View style={styles.assetMeta}>
+              </View>
+              <View style={styles.assetIdentity}>
                 <Text style={styles.assetSymbol}>{token.symbol}</Text>
-                <Text style={styles.assetName} numberOfLines={1}>{token.name}</Text>
+                <Text style={styles.assetName} numberOfLines={1}>{subtitle}</Text>
               </View>
-              <View style={styles.assetBalanceWrap}>
-                {balance?.isLoading ? <ActivityIndicator size="small" color={token.accent} /> : null}
-                {!balance?.isLoading ? <Text style={styles.assetBalance}>{value}</Text> : null}
-                {balance?.error ? <Text style={styles.assetError}>Unavailable</Text> : null}
-              </View>
+              <Text style={styles.assetValue} numberOfLines={1}>{value}</Text>
             </View>
           );
         })}
       </View>
-    </LinearGradient>
+    </View>
   );
 }
 
 export default function HomeScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const bottomTabBarHeight = useBottomTabBarHeight();
+  const homeBottomPadding = bottomTabBarHeight + insets.bottom + 16;
   const {
     address,
     hideBalance,
     isBalanceLoading,
     setHideBalance,
+    tokenBalances,
     transactions,
     usdcBalanceFormatted,
-  tokenBalances,
   } = useWalletStore();
   const { refetch: refetchBalance } = useBalance();
   const { refetch: refetchTransactions } = useTransactions();
   const { health, isChecking: healthChecking, refresh: refreshHealth } = useArcHealth();
-  const dashboard = usePaymentDashboard({ address, transactions, activeLimit: 4, activityLimit: 1 });
+  const dashboard = usePaymentDashboard({
+    address,
+    transactions,
+    activeLimit: 3,
+    activityLimit: 1,
+  });
   const [manualRefreshing, setManualRefreshing] = useState(false);
-  const [statusDismissed, setStatusDismissed] = useState(false);
+  const [noticeDismissed, setNoticeDismissed] = useState(false);
 
   const usdcValue = Number(usdcBalanceFormatted.replace(/,/g, '')) || 0;
-  const networkColor = health?.status === 'offline' ? Colors.error : health?.status === 'degraded' ? '#FFB547' : '#19E6FF';
-  const networkLabel = healthChecking ? 'Checking Arc' : health?.status === 'offline' ? 'RPC offline' : health?.status === 'degraded' ? 'Arc slow' : 'Live on Arc';
-  const statusStrip = useMemo(() => {
-    if (!address) return { icon: 'wallet-outline' as const, label: 'Wallet setup needed', detail: 'Create or import a wallet' };
-    if (usdcValue <= 0) return { icon: 'water-outline' as const, label: 'Faucet test assets needed', detail: 'Testnet only' };
-    return { icon: 'checkmark-circle-outline' as const, label: 'Testnet assets ready', detail: 'Arc Testnet active' };
-  }, [address, usdcValue]);
+  const networkColor = health?.status === 'offline'
+    ? Colors.error
+    : health?.status === 'degraded'
+      ? Colors.warning
+      : Colors.success;
+  const networkLabel = healthChecking
+    ? 'Checking'
+    : health?.status === 'offline'
+      ? 'Offline'
+      : health?.status === 'degraded'
+        ? 'Degraded'
+        : 'Arc Testnet';
+  const balanceUpdatedAt = tokenBalances.USDC?.updatedAt;
+  const balanceSyncLabel = isBalanceLoading
+    ? 'Refreshing'
+    : balanceUpdatedAt
+      ? `Updated ${timeAgo(balanceUpdatedAt)}`
+      : 'Not synced yet';
+
+  const notice = useMemo(() => {
+    if (!address) {
+      return {
+        icon: 'wallet-outline' as const,
+        title: 'Wallet setup needed',
+        detail: 'Create or import a wallet to start.',
+        route: '/(onboarding)/welcome',
+      };
+    }
+    if (health?.status === 'offline') {
+      return {
+        icon: 'cloud-offline-outline' as const,
+        title: 'Using cached data',
+        detail: 'Arc RPC is temporarily unavailable.',
+        route: '/developer-debug',
+      };
+    }
+    if (usdcValue <= 0) {
+      return {
+        icon: 'water-outline' as const,
+        title: 'Need test assets?',
+        detail: 'Open the Arc Testnet faucet.',
+        route: '/faucet',
+      };
+    }
+    return null;
+  }, [address, health?.status, usdcValue]);
 
   const refreshAll = useCallback(async () => {
     setManualRefreshing(true);
     try {
-      await Promise.all([refetchBalance(), refetchTransactions(), refreshHealth(), dashboard.refresh()]);
+      await Promise.all([
+        refetchBalance(),
+        refetchTransactions(),
+        refreshHealth(),
+        dashboard.refresh(),
+      ]);
     } finally {
       setManualRefreshing(false);
     }
@@ -197,17 +245,10 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.backgroundLayer} pointerEvents="none">
-        <LinearGradient colors={['#05070D', '#090C17', '#05060B']} style={StyleSheet.absoluteFillObject} />
-        <GradientOrb colors={['rgba(25,230,255,0.18)', 'rgba(25,230,255,0.00)']} style={styles.bgOrbTop} />
-        <GradientOrb colors={['rgba(139,121,255,0.16)', 'rgba(139,121,255,0.00)']} style={styles.bgOrbBottom} />
-        <View style={styles.bgPlaneOne} />
-        <View style={styles.bgPlaneTwo} />
-      </View>
-
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scroll}
+        scrollIndicatorInsets={{ bottom: homeBottomPadding }}
+        contentContainerStyle={[styles.scroll, { paddingBottom: homeBottomPadding }]}
         refreshControl={
           <RefreshControl
             refreshing={manualRefreshing}
@@ -217,188 +258,389 @@ export default function HomeScreen() {
           />
         }
       >
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.kicker}>ARC TESTNET</Text>
-            <Text style={styles.title}>T Pay</Text>
-            <Text style={styles.headerSubline}>Social stablecoin payments</Text>
+        <View style={styles.contentShell}>
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.accountHeader}
+              activeOpacity={0.72}
+              onPress={() => router.push('/(tabs)/settings')}
+              accessibilityRole="button"
+              accessibilityLabel="Open wallet settings"
+            >
+              <TpayMark size={38} />
+              <View style={styles.accountCopy}>
+                <Text style={styles.accountName}>T Pay</Text>
+                <View style={styles.accountMeta}>
+                  <StatusPulse color={networkColor} />
+                  <Text style={styles.accountMetaText} numberOfLines={1}>
+                    {address ? shortenAddress(address, 5) : networkLabel}
+                  </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+            <View style={styles.headerActions}>
+              <HeaderButton icon="scan-outline" label="Scan payment QR" onPress={() => router.push('/scan')} />
+              <HeaderButton icon="copy-outline" label="Copy wallet address" onPress={copyAddress} />
+            </View>
           </View>
-          <View style={styles.headerActions}>
-            <HeaderButton icon="copy-outline" onPress={copyAddress} />
-            <HeaderButton icon="settings-outline" onPress={() => router.push('/(tabs)/settings')} />
-          </View>
-        </View>
 
-        <View style={styles.heroShadow}>
           <LinearGradient
-            colors={['rgba(25,230,255,0.22)', 'rgba(39,117,202,0.18)', 'rgba(11,15,30,0.96)']}
+            colors={['#112A38', '#101C29']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.heroCard}
+            style={styles.balanceCard}
           >
-            <View style={styles.heroHighlight} />
-            <View style={styles.heroRingOne} />
-            <LinearGradient
-              colors={['rgba(155,239,255,0.20)', 'rgba(39,117,202,0.08)', 'rgba(139,121,255,0.00)']}
-              start={{ x: 0.15, y: 0.1 }}
-              end={{ x: 0.9, y: 1 }}
-              style={styles.heroSoftOrb}
+            <View style={styles.cardHighlight} pointerEvents="none" />
+            <AnimatedGlassBorder
+              borderRadius={24}
+              duration={8000}
+              enabled
+              intensity="hero"
             />
-
-            <TouchableOpacity style={styles.eyeButton} onPress={() => setHideBalance(!hideBalance)} activeOpacity={0.78}>
-              <Ionicons name={hideBalance ? 'eye-off-outline' : 'eye-outline'} size={18} color="#DDEBFF" />
-            </TouchableOpacity>
-
-            <View style={styles.networkRow}>
-              <TouchableOpacity style={[styles.livePill, { backgroundColor: `${networkColor}18` }]} onPress={refreshHealth} activeOpacity={0.78}>
-                <View style={[styles.liveDot, { backgroundColor: networkColor }]} />
-                <Text style={[styles.liveText, { color: networkColor }]}>{networkLabel}</Text>
+            <View style={styles.balanceHeader}>
+              <View style={styles.balanceCopy}>
+                <Text style={styles.balanceLabel}>Arc balance</Text>
+                <Text style={styles.balanceSupporting}>USDC for payments and network fees</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.eyeButton}
+                onPress={() => setHideBalance(!hideBalance)}
+                activeOpacity={0.72}
+                accessibilityRole="button"
+                accessibilityLabel={hideBalance ? 'Show balances' : 'Hide balances'}
+              >
+                <Ionicons
+                  name={hideBalance ? 'eye-off-outline' : 'eye-outline'}
+                  size={19}
+                  color={Colors.text2}
+                />
               </TouchableOpacity>
             </View>
-
-            <Text style={styles.balanceLabel}>Arc Assets</Text>
             {isBalanceLoading ? (
               <ActivityIndicator color={Colors.primary} style={styles.balanceLoader} />
             ) : (
-              <Text style={styles.balanceText}>{hideBalance ? '$ ****' : formatUsd(usdcValue)}</Text>
+              <AnimatedBalanceText value={usdcValue} hidden={hideBalance} style={styles.balanceText} />
             )}
+            <View style={styles.balanceStatusRow}>
+              <StatusPulse color={networkColor} />
+              <Text style={styles.balanceStatusText}>{networkLabel}</Text>
+              <View style={styles.balanceStatusDivider} />
+              <Text style={styles.balanceStatusText}>{balanceSyncLabel}</Text>
+            </View>
+          </LinearGradient>
 
-            <View style={styles.balanceFooter}>
-              <TouchableOpacity style={styles.addressPill} onPress={copyAddress} activeOpacity={0.78}>
-                <Ionicons name="wallet-outline" size={14} color="#8EEBFF" />
-                <Text style={styles.addressText}>{address ? shortenAddress(address, 6) : 'No wallet'}</Text>
+          <View style={styles.mainActions}>
+            {PRIMARY_ACTIONS.map((action) => <MainAction key={action.label} action={action} />)}
+          </View>
+
+          <RecentPeopleSection activityItems={dashboard.activityItems} />
+
+          <AssetList balances={tokenBalances} hidden={hideBalance} />
+
+          {notice && !noticeDismissed ? (
+            <View style={styles.noticeRow}>
+              <AnimatedGlassBorder
+                borderRadius={18}
+                duration={12500}
+                enabled
+                intensity="subtle"
+              />
+              <PressScale
+                style={styles.noticeAction}
+                onPress={() => router.push(notice.route as any)}
+                accessibilityRole="button"
+                accessibilityLabel={`${notice.title}. ${notice.detail}`}
+              >
+                <View style={styles.noticeContent}>
+                  <View style={styles.noticeIcon}>
+                    <Ionicons name={notice.icon} size={17} color={Colors.warning} />
+                  </View>
+                  <View style={styles.noticeCopy}>
+                    <Text style={styles.noticeTitle}>{notice.title}</Text>
+                    <Text style={styles.noticeDetail}>{notice.detail}</Text>
+                  </View>
+                </View>
+              </PressScale>
+              <TouchableOpacity
+                style={styles.noticeDismiss}
+                onPress={() => setNoticeDismissed(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Dismiss notice"
+              >
+                <Ionicons name="close" size={17} color={Colors.text3} />
               </TouchableOpacity>
-              <View style={styles.gasPill}>
-                <Text style={styles.gasText}>Testnet assets only</Text>
-              </View>
             </View>
-          </LinearGradient>
+          ) : null}
+
+          <View style={styles.flowSection}>
+            <ActivePaymentsSection
+              items={dashboard.activePayments}
+              loading={dashboard.isLoading}
+              error={dashboard.error}
+            />
+          </View>
+
+          <View style={styles.flowSection}>
+            <LatestActivityPreview
+              items={dashboard.latestActivity}
+              loading={dashboard.isLoading}
+            />
+          </View>
         </View>
-
-        {!statusDismissed ? (
-          <LinearGradient colors={['rgba(25,230,255,0.095)', 'rgba(139,121,255,0.055)']} style={styles.statusStrip}>
-            <View style={styles.statusLeft}>
-              <View style={styles.statusIconBubble}>
-                <Ionicons name={statusStrip.icon} size={15} color="#8EEBFF" />
-              </View>
-              <Text style={styles.statusLabel}>{statusStrip.label}</Text>
-              <Text style={styles.statusDetail}>{statusStrip.detail}</Text>
-            </View>
-            <TouchableOpacity onPress={() => setStatusDismissed(true)} hitSlop={10}>
-              <Ionicons name="close" size={16} color={Colors.text3} />
-            </TouchableOpacity>
-          </LinearGradient>
-        ) : null}
-
-
-        <AssetsMiniCard tokenBalances={tokenBalances} hidden={hideBalance} />
-
-        <View style={styles.actionGrid}>
-          {PRIMARY_ACTIONS.map((action) => (
-            <ActionTile key={action.label} action={action} />
-          ))}
-        </View>
-
-        <View style={styles.secondaryActionGrid}>
-          {SECONDARY_ACTIONS.map((action) => (
-            <ActionTile key={action.label} action={action} compact />
-          ))}
-        </View>
-
-        <View style={styles.inlineCtaRow}>
-          <TouchableOpacity style={styles.inlineCta} onPress={() => router.push('/faucet')} activeOpacity={0.78}>
-            <Ionicons name="water-outline" size={17} color="#A8B1FF" />
-            <Text style={[styles.inlineCtaText, { color: '#C6CBFF' }]}>Need test assets?</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.inlineCta} onPress={() => router.push('/scan')} activeOpacity={0.78}>
-            <Ionicons name="scan-outline" size={17} color="#8EEBFF" />
-            <Text style={styles.inlineCtaText}>Scan payment QR</Text>
-          </TouchableOpacity>
-        </View>
-
-        <ActivePaymentsSection items={dashboard.activePayments} loading={dashboard.isLoading} error={dashboard.error} />
-        <LatestActivityPreview items={dashboard.latestActivity} loading={dashboard.isLoading} />
-        <StablecoinRailsSection />
-
-        <View style={{ height: Platform.OS === 'ios' ? 112 : 94 }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#05070D' },
-  backgroundLayer: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
-  gradientOrb: { position: 'absolute', borderRadius: 999 },
-  bgOrbTop: { top: -128, right: -92, width: 300, height: 300 },
-  bgOrbBottom: { bottom: 120, left: -172, width: 360, height: 360 },
-  bgPlaneOne: { position: 'absolute', top: 128, right: -70, width: 170, height: 260, borderRadius: 44, transform: [{ rotate: '-22deg' }], backgroundColor: 'rgba(255,255,255,0.025)' },
-  bgPlaneTwo: { position: 'absolute', top: 410, left: -80, width: 160, height: 220, borderRadius: 40, transform: [{ rotate: '18deg' }], backgroundColor: 'rgba(25,230,255,0.035)' },
-  scroll: { paddingHorizontal: Spacing.md, paddingTop: Spacing.sm },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 },
-  kicker: { color: '#8EEBFF', fontSize: 11, fontWeight: '700', letterSpacing: 1.45, textTransform: 'uppercase' },
-  title: { color: '#F8FAFF', fontSize: 31, lineHeight: 35, fontWeight: '700', letterSpacing: -0.55 },
-  headerSubline: { color: '#676B86', fontSize: FontSize.xs, fontWeight: '700', marginTop: 2 },
-  headerActions: { flexDirection: 'row', gap: Spacing.sm },
-  headerButton: { width: 43, height: 43, borderRadius: 17, overflow: 'hidden', shadowColor: '#00D4FF', shadowOpacity: 0.13, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 5 },
-  headerButtonGradient: { flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 17, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
-  heroShadow: { borderRadius: 34, marginBottom: 13, shadowColor: '#00D4FF', shadowOpacity: 0.22, shadowRadius: 30, shadowOffset: { width: 0, height: 18 }, elevation: 12 },
-  heroCard: { minHeight: 226, borderRadius: 34, padding: 22, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
-  heroHighlight: { position: 'absolute', top: 1, left: 24, right: 24, height: 1, backgroundColor: 'rgba(255,255,255,0.34)' },
-  heroRingOne: { position: 'absolute', width: 224, height: 224, borderRadius: 112, right: -102, top: -74, borderWidth: 38, borderColor: 'rgba(25,230,255,0.055)' },
-  heroSoftOrb: { position: 'absolute', right: -34, top: 34, width: 156, height: 156, borderRadius: 78, opacity: 0.92 },
-  networkRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', marginBottom: 30, paddingRight: 54 },
-  livePill: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 12, paddingVertical: 8, borderRadius: Radius.full, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
-  liveDot: { width: 7, height: 7, borderRadius: 4 },
-  liveText: { fontSize: FontSize.xs, fontWeight: '700', letterSpacing: 0.25 },
-  eyeButton: { position: 'absolute', top: 18, right: 18, zIndex: 3, width: 40, height: 40, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(7,13,27,0.42)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
-  balanceLabel: { color: 'rgba(238,244,255,0.72)', fontSize: FontSize.sm, fontWeight: '800', letterSpacing: 0.1 },
-  balanceLoader: { alignSelf: 'flex-start', marginTop: Spacing.sm, marginBottom: Spacing.md },
-  balanceText: { color: Colors.white, fontSize: 47, lineHeight: 55, fontWeight: '800', letterSpacing: -1.8, marginTop: 2 },
-  balanceFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 22, gap: Spacing.sm },
-  addressPill: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 12, paddingVertical: 10, borderRadius: Radius.full, backgroundColor: 'rgba(4,7,14,0.38)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  addressText: { color: '#F3F7FF', fontSize: FontSize.xs, fontFamily: 'SpaceMono-Regular' },
-  gasPill: { paddingHorizontal: 12, paddingVertical: 10, borderRadius: Radius.full, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  gasText: { color: '#BCEFFF', fontSize: FontSize.xs, fontWeight: '700' },
-  statusStrip: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: 11, paddingVertical: 9, borderRadius: Radius.full, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginBottom: 16 },
-  statusLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 7 },
-  statusIconBubble: { width: 25, height: 25, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.06)' },
-  statusLabel: { color: Colors.text1, fontSize: FontSize.xs, fontWeight: '700' },
-  statusDetail: { color: Colors.text3, fontSize: FontSize.xs, fontWeight: '700' },
-  assetsCard: { padding: 14, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginBottom: 16, overflow: 'hidden' },
-  assetsHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: Spacing.sm, marginBottom: 12 },
-  assetsTitle: { color: Colors.text1, fontSize: FontSize.md, fontWeight: '700', letterSpacing: -0.1 },
-  assetsSub: { color: Colors.text3, fontSize: FontSize.xs, lineHeight: 17, marginTop: 2, fontWeight: '600' },
-  assetsBadge: { borderRadius: Radius.full, paddingHorizontal: 9, paddingVertical: 5, backgroundColor: 'rgba(25,230,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  assetsBadgeText: { color: '#8EEBFF', fontSize: 10, fontWeight: '800', letterSpacing: 0.35, textTransform: 'uppercase' },
-  assetRows: { gap: 10 },
-  assetRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 2 },
-  assetIcon: { width: 36, height: 36, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  assetIconText: { fontSize: 13, fontWeight: '800' },
-  assetMeta: { flex: 1 },
-  assetSymbol: { color: Colors.text1, fontSize: FontSize.sm, fontWeight: '800' },
-  assetName: { color: Colors.text3, fontSize: FontSize.xs, marginTop: 2 },
-  assetBalanceWrap: { minWidth: 98, alignItems: 'flex-end' },
-  assetBalance: { color: Colors.text1, fontSize: FontSize.sm, fontWeight: '800' },
-  assetError: { color: Colors.error, fontSize: 10, marginTop: 2, fontWeight: '700' },
-  actionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginBottom: 12 },
-  actionShadow: { flex: 1, minWidth: '47%', borderRadius: 24, shadowColor: '#00D4FF', shadowOpacity: 0.12, shadowRadius: 16, shadowOffset: { width: 0, height: 10 }, elevation: 5 },
-  actionTile: { minHeight: 92, alignItems: 'center', justifyContent: 'center', gap: 9, padding: 12, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
-  actionIcon: { width: 48, height: 48, borderRadius: 17, shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 8 }, elevation: 4 },
-  actionIconGradient: { flex: 1, borderRadius: 17, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
-  actionCopy: { alignItems: 'center' },
-  actionLabel: { color: Colors.text1, fontSize: FontSize.md, fontWeight: '700', textAlign: 'center', letterSpacing: -0.1 },
-  actionHelper: { color: Colors.text2, fontSize: FontSize.xs, marginTop: 3, textAlign: 'center', fontWeight: '700' },
-  secondaryActionGrid: { flexDirection: 'row', gap: Spacing.sm, marginBottom: 15 },
-  secondaryActionShadow: { flex: 1, borderRadius: 19, shadowColor: '#000000', shadowOpacity: 0.25, shadowRadius: 10, shadowOffset: { width: 0, height: 7 }, elevation: 3 },
-  secondaryActionTile: { minHeight: 64, alignItems: 'center', justifyContent: 'center', gap: 5, padding: 9, borderRadius: 19, borderWidth: 1, borderColor: 'rgba(255,255,255,0.075)' },
-  secondaryActionIcon: { width: 33, height: 33, borderRadius: 13, shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 5 }, elevation: 2 },
-  secondaryActionIconGradient: { flex: 1, borderRadius: 13, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  secondaryActionLabel: { color: Colors.text1, fontSize: FontSize.xs, fontWeight: '700', textAlign: 'center' },
-  inlineCtaRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: 24 },
-  inlineCta: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 12, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.045)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)' },
-  inlineCtaText: { color: '#8EEBFF', fontSize: FontSize.sm, fontWeight: '700' },
+  safe: { flex: 1, backgroundColor: Colors.bg },
+  scroll: { paddingTop: 12 },
+  contentShell: {
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
+    paddingHorizontal: Spacing.md,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 18,
+  },
+  accountHeader: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  accountCopy: { flex: 1, minWidth: 0 },
+  accountName: {
+    color: Colors.text1,
+    fontFamily: FontFamily.displaySemiBold,
+    fontSize: FontSize.md,
+    lineHeight: 19,
+    letterSpacing: -0.2,
+  },
+  accountMeta: { flexDirection: 'row', alignItems: 'center', marginTop: 3, minWidth: 0 },
+  accountMetaText: {
+    flex: 1,
+    color: Colors.text3,
+    fontFamily: FontFamily.body,
+    fontSize: 10.5,
+  },
+  headerActions: { flexDirection: 'row', gap: 8 },
+  headerButton: { width: 44, height: 44, borderRadius: 14 },
+  headerButtonContent: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 14,
+    backgroundColor: HOME_SURFACE,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: HOME_BORDER,
+  },
+  balanceCard: {
+    minHeight: 158,
+    borderRadius: 24,
+    padding: 20,
+    overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: HOME_BORDER,
+    ...HOME_DEPTH,
+  },
+  cardHighlight: {
+    position: 'absolute',
+    top: 0,
+    left: 24,
+    right: 24,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+  balanceHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  balanceCopy: { flex: 1, paddingRight: 12 },
+  balanceLabel: {
+    color: '#D7E0E9',
+    fontFamily: FontFamily.bodySemiBold,
+    fontSize: FontSize.sm,
+  },
+  balanceSupporting: {
+    color: '#7F8B9B',
+    fontFamily: FontFamily.body,
+    fontSize: FontSize.xs,
+    lineHeight: 16,
+    marginTop: 4,
+  },
+  eyeButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(7,10,15,0.24)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: HOME_BORDER,
+  },
+  balanceLoader: { alignSelf: 'flex-start', marginTop: 25 },
+  balanceText: {
+    color: Colors.white,
+    fontFamily: FontFamily.displayBold,
+    fontSize: 44,
+    lineHeight: 52,
+    letterSpacing: -1.7,
+    marginTop: 17,
+  },
+  balanceStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 15,
+    minHeight: 16,
+  },
+  balanceStatusText: {
+    color: '#8390A1',
+    fontFamily: FontFamily.body,
+    fontSize: 10.5,
+  },
+  balanceStatusDivider: {
+    width: 3,
+    height: 3,
+    borderRadius: 2,
+    marginHorizontal: 7,
+    backgroundColor: '#536071',
+  },
+  mainActions: {
+    flexDirection: 'row',
+    gap: 9,
+    marginTop: 18,
+  },
+  mainAction: {
+    flex: 1,
+    minWidth: 0,
+    height: 78,
+    borderRadius: 18,
+  },
+  mainActionContent: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mainActionIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  mainActionLabel: {
+    color: Colors.text1,
+    fontFamily: FontFamily.bodyMedium,
+    fontSize: FontSize.xs,
+    marginTop: 7,
+  },
+  assetsSection: { marginTop: 26 },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    paddingHorizontal: 2,
+  },
+  sectionTitle: {
+    color: Colors.text1,
+    fontFamily: FontFamily.displaySemiBold,
+    fontSize: 19,
+    lineHeight: 23,
+    letterSpacing: -0.3,
+  },
+  sectionContext: {
+    color: Colors.text3,
+    fontFamily: FontFamily.mono,
+    fontSize: 9.5,
+    letterSpacing: 0.7,
+  },
+  assetList: {
+    borderRadius: HOME_RADIUS,
+    paddingHorizontal: 15,
+    backgroundColor: HOME_SURFACE,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: HOME_BORDER,
+  },
+  assetRow: {
+    minHeight: 64,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  assetRowDivider: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.055)',
+  },
+  assetIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  assetIconText: { fontFamily: FontFamily.displayBold, fontSize: 12 },
+  assetIdentity: { flex: 1, minWidth: 0 },
+  assetSymbol: {
+    color: Colors.text1,
+    fontFamily: FontFamily.bodySemiBold,
+    fontSize: FontSize.sm,
+  },
+  assetName: {
+    color: Colors.text3,
+    fontFamily: FontFamily.body,
+    fontSize: 10.5,
+    marginTop: 2,
+  },
+  assetValue: {
+    minWidth: 84,
+    color: Colors.text1,
+    fontFamily: FontFamily.mono,
+    fontSize: FontSize.sm,
+    textAlign: 'right',
+  },
+  noticeRow: {
+    minHeight: 58,
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 18,
+    backgroundColor: HOME_SURFACE,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: HOME_BORDER,
+  },
+  noticeAction: { flex: 1, minHeight: 56, borderRadius: 18 },
+  noticeContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingLeft: 12,
+  },
+  noticeIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.warningBg,
+  },
+  noticeCopy: { flex: 1, minWidth: 0 },
+  noticeTitle: { color: Colors.text1, fontFamily: FontFamily.bodySemiBold, fontSize: FontSize.sm },
+  noticeDetail: { color: Colors.text3, fontFamily: FontFamily.body, fontSize: FontSize.xs, marginTop: 2 },
+  noticeDismiss: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  flowSection: { alignSelf: 'stretch', minWidth: 0 },
 });
-
-
-

@@ -2,6 +2,7 @@
 // Wallet creation/import and secure persistence.
 
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import { HDKey } from '@scure/bip32';
 import {
   generateMnemonic as generateBip39Mnemonic,
@@ -24,6 +25,20 @@ export interface WalletInfo {
   address: `0x${string}`;
   privateKey: Hex;
   mnemonic?: string;
+}
+
+interface BrowserSessionWallet {
+  privateKey: Hex;
+  mnemonic?: string;
+}
+
+// SecureStore has no web implementation. Browser preview credentials remain
+// in memory only, so a reload or closed tab destroys them instead of writing
+// a seed phrase/private key to localStorage.
+let browserSessionWallet: BrowserSessionWallet | null = null;
+
+export function usesEphemeralBrowserWallet(): boolean {
+  return Platform.OS === 'web';
 }
 
 function bytesToHex(bytes: Uint8Array): string {
@@ -113,6 +128,14 @@ export async function importFromPrivateKey(rawKey: string): Promise<WalletInfo> 
 }
 
 export async function saveWalletSecurely(wallet: WalletInfo): Promise<void> {
+  if (usesEphemeralBrowserWallet()) {
+    browserSessionWallet = {
+      privateKey: wallet.privateKey,
+      mnemonic: wallet.mnemonic,
+    };
+    return;
+  }
+
   await SecureStore.setItemAsync(SECURE_KEYS.PRIVATE_KEY, wallet.privateKey, {
     keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
   });
@@ -124,20 +147,33 @@ export async function saveWalletSecurely(wallet: WalletInfo): Promise<void> {
 }
 
 export async function loadPrivateKey(): Promise<Hex | null> {
+  if (usesEphemeralBrowserWallet()) {
+    return browserSessionWallet?.privateKey ?? null;
+  }
   const key = await SecureStore.getItemAsync(SECURE_KEYS.PRIVATE_KEY);
   return key as Hex | null;
 }
 
 export async function loadSeedPhrase(): Promise<string | null> {
+  if (usesEphemeralBrowserWallet()) {
+    return browserSessionWallet?.mnemonic ?? null;
+  }
   return SecureStore.getItemAsync(SECURE_KEYS.SEED_PHRASE);
 }
 
 export async function hasWallet(): Promise<boolean> {
+  if (usesEphemeralBrowserWallet()) {
+    return browserSessionWallet !== null;
+  }
   const key = await SecureStore.getItemAsync(SECURE_KEYS.PRIVATE_KEY);
   return key !== null;
 }
 
 export async function wipeWallet(): Promise<void> {
+  if (usesEphemeralBrowserWallet()) {
+    browserSessionWallet = null;
+    return;
+  }
   await SecureStore.deleteItemAsync(SECURE_KEYS.PRIVATE_KEY);
   await SecureStore.deleteItemAsync(SECURE_KEYS.SEED_PHRASE);
 }

@@ -3,13 +3,17 @@ import { ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { safeBack } from '@/utils/navigation';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
+
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Clipboard from 'expo-clipboard';
 import Toast from 'react-native-toast-message';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/Button';
+
+import { LiquidGlassSurface } from '@/components/ui/LiquidGlassSurface';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
-import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
+import { Colors, FontFamily, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useWalletStore } from '@/store/walletStore';
 import { CachedTransaction, loadCachedTransactions } from '@/utils/storage';
 import { loadPendingTxs, PendingTx } from '@/services/pendingTxService';
@@ -17,7 +21,7 @@ import { loadActivityItems, type UnifiedActivityItem } from '@/services/activity
 import { findContactByAddress } from '@/services/contactService';
 import { shortenAddress, shortenHash } from '@/utils/format';
 
-type HistoryFilter = 'all' | 'send' | 'receive' | 'bridge' | 'swap' | 'invoice' | 'split' | 'recurring' | 'market' | 'request';
+type HistoryFilter = 'all' | 'send' | 'receive' | 'bridge' | 'swap' | 'invoice' | 'split' | 'recurring' | 'market' | 'request' | 'batch';
 type HistoryRow = {
   id: string;
   type: HistoryFilter;
@@ -30,7 +34,7 @@ type HistoryRow = {
   source: 'cache' | 'pending' | 'activity';
 };
 
-const FILTERS: HistoryFilter[] = ['all', 'send', 'receive', 'split', 'invoice', 'bridge', 'swap', 'request', 'recurring', 'market'];
+const FILTERS: HistoryFilter[] = ['all', 'send', 'receive', 'split', 'invoice', 'batch', 'bridge', 'swap', 'request', 'recurring', 'market'];
 
 function rowFromCached(tx: CachedTransaction): HistoryRow {
   return { id: tx.hash, type: tx.type, hash: tx.hash, amount: `${tx.value} USDC`, counterparty: tx.type === 'send' ? tx.to : tx.from, status: tx.status, timestamp: tx.timestamp, source: 'cache' };
@@ -41,7 +45,7 @@ function rowFromPending(tx: PendingTx): HistoryRow {
 }
 
 function rowFromActivity(item: UnifiedActivityItem): HistoryRow {
-  const type: HistoryFilter = item.sourceFeature === 'fx' ? 'swap' : item.sourceFeature === 'merchant' ? 'invoice' : item.sourceFeature === 'split' ? 'split' : item.sourceFeature === 'passport' ? 'market' : item.sourceFeature;
+  const type: HistoryFilter = item.sourceFeature === 'fx' ? 'swap' : item.sourceFeature === 'merchant' ? 'invoice' : item.sourceFeature === 'split' ? 'split' : item.sourceFeature === 'passport' ? 'market' : item.sourceFeature;
   return {
     id: item.id,
     type,
@@ -134,11 +138,13 @@ export default function HistoryScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['top']}>
+
+      <LinearGradient colors={['rgba(53,213,244,0.075)', 'rgba(7,9,13,0)']} style={styles.topWash} pointerEvents="none" />
       <View style={styles.header}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => safeBack(router)}><Ionicons name="arrow-back" size={22} color={Colors.text1} /></TouchableOpacity>
-        <View style={{ flex: 1 }}><Text style={styles.title}>History</Text><Text style={styles.subtitle}>Search, filter, inspect, and export wallet activity.</Text></View>
-        <TouchableOpacity style={styles.iconBtn} onPress={hydrate}><Ionicons name="refresh-outline" size={20} color={Colors.primary} /></TouchableOpacity>
+        <TouchableOpacity style={styles.iconHitbox} onPress={() => safeBack(router)}><LiquidGlassSurface tone="clear" intensity={42} style={styles.iconBtn} contentStyle={styles.iconContent}><Ionicons name="arrow-back" size={22} color={Colors.text1} /></LiquidGlassSurface></TouchableOpacity>
+        <View style={{ flex: 1 }}><Text style={styles.kicker}>ACTIVITY</Text><Text style={styles.title}>History</Text><Text style={styles.subtitle}>Search and review your Arc payments.</Text></View>
+        <TouchableOpacity style={styles.iconHitbox} onPress={hydrate}><LiquidGlassSurface tone="clear" intensity={42} style={styles.iconBtn} contentStyle={styles.iconContent}><Ionicons name="refresh-outline" size={20} color={Colors.primary} /></LiquidGlassSurface></TouchableOpacity>
       </View>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Input label="Search" value={query} onChangeText={setQuery} placeholder="Address, hash, amount, contact..." />
@@ -152,7 +158,7 @@ export default function HistoryScreen() {
           <Card key={`${row.source}_${row.id}`} style={styles.rowCard}>
             <View style={[styles.typeIcon, row.status === 'pending' && styles.pendingIcon]}><Ionicons name={row.status === 'pending' ? 'time-outline' : row.type === 'send' ? 'arrow-up-outline' : row.type === 'receive' ? 'arrow-down-outline' : 'swap-horizontal-outline'} size={18} color={row.status === 'pending' ? Colors.warning : Colors.primary} /></View>
             <View style={styles.rowMeta}>
-              <Text style={styles.rowTitle}>{row.type.toUpperCase()} - {row.amount}</Text>
+              <Text style={styles.rowTitle}>{row.type.charAt(0).toUpperCase() + row.type.slice(1)} - {row.amount}</Text>
               <Text style={styles.rowSub}>{row.contactName ?? (row.counterparty ? shortenAddress(row.counterparty, 5) : 'No counterparty')}</Text>
               <Text style={styles.rowHash}>{shortenHash(row.hash)} - {new Date(row.timestamp).toLocaleString()}</Text>
             </View>
@@ -166,29 +172,37 @@ export default function HistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.bg },
+  safe: { flex: 1, backgroundColor: Colors.bg },
+
+  topWash: { position: 'absolute', top: 0, left: 0, right: 0, height: 260 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: Spacing.md, paddingTop: 8, paddingBottom: 12 },
-  iconBtn: { width: 42, height: 42, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.elevated, borderWidth: 1, borderColor: Colors.border },
-  title: { color: Colors.text1, fontSize: 30, fontWeight: '800', letterSpacing: -0.8 },
-  subtitle: { color: Colors.text2, fontSize: FontSize.sm, marginTop: 2 },
+  iconHitbox: { width: 42, height: 42, borderRadius: 15 },
+
+  iconBtn: { flex: 1, borderRadius: 15 },
+
+  iconContent: { alignItems: 'center', justifyContent: 'center' },
+
+  kicker: { color: '#83E9FB', fontFamily: FontFamily.bodySemiBold, fontSize: 10, letterSpacing: 1.3 },
+  title: { color: Colors.text1, fontFamily: FontFamily.displayBold, fontSize: 30, letterSpacing: -0.8 },
+  subtitle: { color: Colors.text2, fontFamily: FontFamily.body, fontSize: FontSize.sm, marginTop: 2 },
   content: { padding: Spacing.md, gap: Spacing.md },
   filters: { gap: 8, paddingRight: 6 },
   filter: { paddingHorizontal: 13, paddingVertical: 9, borderRadius: Radius.full, backgroundColor: Colors.elevated, borderWidth: 1, borderColor: Colors.border },
   filterActive: { backgroundColor: Colors.primaryGlow, borderColor: Colors.primary },
-  filterText: { color: Colors.text2, fontSize: FontSize.xs, fontWeight: '800', textTransform: 'uppercase' },
+  filterText: { color: Colors.text2, fontFamily: FontFamily.bodyMedium, fontSize: FontSize.xs, textTransform: 'capitalize' },
   filterTextActive: { color: Colors.primary },
-  loadingText: { color: Colors.text2, textAlign: 'center', padding: 16 },
+  loadingText: { color: Colors.text2, fontFamily: FontFamily.body, textAlign: 'center', padding: 16 },
   emptyCard: { alignItems: 'center', gap: 8, paddingVertical: 28 },
-  emptyTitle: { color: Colors.text1, fontSize: FontSize.lg, fontWeight: '800' },
-  emptyText: { color: Colors.text2, textAlign: 'center', lineHeight: 20 },
+  emptyTitle: { color: Colors.text1, fontFamily: FontFamily.displaySemiBold, fontSize: FontSize.lg },
+  emptyText: { color: Colors.text2, fontFamily: FontFamily.body, textAlign: 'center', lineHeight: 20 },
   rowCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   typeIcon: { width: 42, height: 42, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primaryGlow, borderWidth: 1, borderColor: 'rgba(0,212,255,0.2)' },
   pendingIcon: { backgroundColor: Colors.warningBg, borderColor: 'rgba(255,181,71,0.2)' },
   rowMeta: { flex: 1, gap: 3 },
-  rowTitle: { color: Colors.text1, fontSize: FontSize.sm, fontWeight: '800' },
-  rowSub: { color: Colors.text2, fontSize: FontSize.xs },
-  rowHash: { color: Colors.text3, fontSize: 11, fontFamily: 'SpaceMono-Regular' },
-  status: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
+  rowTitle: { color: Colors.text1, fontFamily: FontFamily.bodySemiBold, fontSize: FontSize.sm },
+  rowSub: { color: Colors.text2, fontFamily: FontFamily.body, fontSize: FontSize.xs },
+  rowHash: { color: Colors.text3, fontSize: 11, fontFamily: FontFamily.mono },
+  status: { fontFamily: FontFamily.bodySemiBold, fontSize: 10, textTransform: 'capitalize' },
   statusPending: { color: Colors.warning },
   statusFailed: { color: Colors.error },
   statusOk: { color: Colors.success },

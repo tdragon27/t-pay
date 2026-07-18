@@ -47,7 +47,7 @@ export default function SecurityBackupScreen() {
 
   const checklist = [
     { label: 'Seed phrase exists on this device', ok: hasSeed },
-    { label: 'Backup checklist confirmed', ok: backupConfirmed },
+    { label: 'Backup Checklist confirmed', ok: backupConfirmed },
     { label: 'Never share seed/private key with support or strangers', ok: true },
     { label: 'Testnet only: do not store mainnet funds here yet', ok: true },
   ];
@@ -70,7 +70,7 @@ export default function SecurityBackupScreen() {
         </Card>
 
         <Card style={styles.cardGap}>
-          <Text style={styles.sectionTitle}>Backup checklist</Text>
+          <Text style={styles.sectionTitle}>Backup Checklist</Text>
           {checklist.map((item, index) => (
             <View key={item.label} style={[styles.checkRow, index < checklist.length - 1 && styles.rowBorder]}>
               <Ionicons name={item.ok ? 'checkmark-circle' : 'ellipse-outline'} size={21} color={item.ok ? Colors.success : Colors.text3} />
@@ -86,7 +86,7 @@ export default function SecurityBackupScreen() {
         </Card>
 
         <Card style={styles.cardGap}>
-          <Text style={styles.sectionTitle}>Private key export</Text>
+          <Text style={styles.sectionTitle}>Private Key Export</Text>
           <Text style={styles.bodyText}>Clipboard export is disabled to reduce accidental key exposure. Use the recovery phrase backup above and store it offline.</Text>
         </Card>
       </ScrollView>

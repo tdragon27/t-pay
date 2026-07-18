@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
+import { Colors, FontFamily, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useWalletStore } from '@/store/walletStore';
 import { formatSplitSyncError, useSplitBills, type SplitFilter } from '@/hooks/useSplitBills';
 import { buildSplitPaymentLink, createSplitBill, expiryMsFromPreset, splitLifecycleStatus, splitProgress, type SplitBill, type SplitExpiryPreset } from '@/services/splitBillService';
@@ -176,7 +176,7 @@ export default function SplitBillScreen() {
 
             <Card style={styles.formCard}>
               <View>
-                <Text style={styles.sectionTitle}>Create split</Text>
+                <Text style={styles.sectionTitle}>Create Split</Text>
                 <Text style={styles.sectionSub}>Split Bill uses USDC on Arc Testnet.</Text>
               </View>
 
@@ -336,14 +336,14 @@ const styles = StyleSheet.create({
   keyboardView: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: Spacing.md, paddingTop: 8, paddingBottom: 12 },
   iconBtn: { width: 42, height: 42, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.elevated, borderWidth: 1, borderColor: Colors.border },
-  title: { color: Colors.text1, fontSize: 29, fontWeight: '700', letterSpacing: -0.5 },
-  subtitle: { color: Colors.text2, fontSize: FontSize.sm, marginTop: 2 },
+  title: { color: Colors.text1, fontFamily: FontFamily.displayBold, fontSize: 29, letterSpacing: -0.5 },
+  subtitle: { color: Colors.text2, fontFamily: FontFamily.body, fontSize: FontSize.sm, marginTop: 2 },
   content: { padding: Spacing.md, gap: Spacing.md },
   warningCard: { flexDirection: 'row', gap: 10, alignItems: 'center', backgroundColor: Colors.warningBg, borderColor: 'rgba(255,181,71,0.28)' },
   warningText: { color: Colors.warning, fontSize: FontSize.sm, lineHeight: 19, flex: 1 },
   formCard: { gap: Spacing.md },
-  sectionTitle: { color: Colors.text1, fontSize: FontSize.lg, fontWeight: '800' },
-  sectionSub: { color: Colors.text2, fontSize: FontSize.sm, marginTop: 4 },
+  sectionTitle: { color: Colors.text1, fontFamily: FontFamily.displaySemiBold, fontSize: FontSize.lg },
+  sectionSub: { color: Colors.text2, fontFamily: FontFamily.body, fontSize: FontSize.sm, marginTop: 4 },
   twoCol: { flexDirection: 'row', gap: 10 },
   col: { flex: 1 },
   expiryLabel: { color: Colors.text2, fontSize: FontSize.sm, fontWeight: '500', letterSpacing: 0.3, textTransform: 'uppercase', marginBottom: 8 },
@@ -375,8 +375,8 @@ const styles = StyleSheet.create({
   errorCard: { flexDirection: 'row', gap: 10, alignItems: 'center', backgroundColor: Colors.errorBg, borderColor: 'rgba(255,77,106,0.28)' },
   errorText: { color: Colors.error, fontSize: FontSize.sm, flex: 1 },
   emptyCard: { alignItems: 'center', gap: 8, paddingVertical: 18, paddingHorizontal: 16 },
-  emptyTitle: { color: Colors.text1, fontSize: FontSize.lg, fontWeight: '800' },
-  emptyText: { color: Colors.text2, textAlign: 'center', lineHeight: 20 },
+  emptyTitle: { color: Colors.text1, fontFamily: FontFamily.displaySemiBold, fontSize: FontSize.lg },
+  emptyText: { color: Colors.text2, fontFamily: FontFamily.body, textAlign: 'center', lineHeight: 20 },
   billCard: { gap: 12, backgroundColor: 'rgba(255,255,255,0.045)' },
   billCardMuted: { opacity: 0.72 },
   billTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },

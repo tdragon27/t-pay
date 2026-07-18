@@ -1,6 +1,6 @@
-// components/ui/Card.tsx
-import React from 'react';
+﻿import React from 'react';
 import { View, StyleSheet, type ViewProps } from 'react-native';
+
 import { Colors, Radius, Spacing, Shadow } from '@/constants/theme';
 
 interface CardProps extends ViewProps {
@@ -31,17 +31,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     padding: Spacing.md,
-    ...Shadow.card,
   },
   elevated: {
     backgroundColor: Colors.elevated,
+    ...Shadow.card,
   },
   glow: {
     borderColor: Colors.primaryDim,
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.14,
     shadowRadius: 12,
-    elevation: 8,
+    elevation: 6,
   },
 });

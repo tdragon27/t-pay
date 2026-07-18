@@ -17,7 +17,7 @@ import Toast from 'react-native-toast-message';
 import { useWalletStore } from '@/store/walletStore';
 import { useArcWallet } from '@/hooks/useArcWallet';
 import { loadSeedPhrase } from '@/lib/wallet';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, FontFamily, Spacing } from '@/constants/theme';
 import { getArcCapabilityStatus } from '@/services/capabilityService';
 import { checkArcRpcHealth, type ArcRpcHealth } from '@/services/arcHealthService';
 import { buildDebugInfo } from '@/services/debugService';
@@ -284,7 +284,7 @@ export default function SettingsScreen() {
         {/* Identity card */}
         <View style={styles.identityCard}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarChar}>A</Text>
+            <Text style={styles.avatarChar}>T</Text>
           </View>
           <View style={styles.identityMeta}>
             <Text style={styles.identityLabel}>My Wallet</Text>
@@ -490,16 +490,16 @@ const styles = StyleSheet.create({
   scroll:    { paddingHorizontal: 16, paddingTop: 8 },
 
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingVertical: 12, marginBottom: 12 },
-  headerTitle: { flex: 1, fontWeight: '700', fontSize: 22, color: '#F0F0FF' },
+  headerTitle: { flex: 1, fontFamily: FontFamily.displaySemiBold, fontSize: 22, color: '#F0F0FF' },
   versionBadge: { backgroundColor: 'rgba(0,212,255,0.1)', borderWidth: 1, borderColor: 'rgba(0,212,255,0.2)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-  versionText: { fontFamily: 'SpaceMono-Regular', fontSize: 11, color: '#00D4FF' },
+  versionText: { fontFamily: FontFamily.mono, fontSize: 11, color: '#00D4FF' },
 
   identityCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#12121A', borderWidth: 1, borderColor: '#2A2A3A', borderRadius: 18, padding: 16, marginBottom: 24, gap: 12 },
   avatar: { width: 48, height: 48, borderRadius: 14, backgroundColor: 'rgba(0,212,255,0.12)', borderWidth: 1, borderColor: 'rgba(0,212,255,0.2)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   avatarChar:      { fontSize: 22, color: '#00D4FF' },
   identityMeta:    { flex: 1, gap: 3 },
   identityLabel:   { fontWeight: '700', fontSize: 14, color: '#F0F0FF' },
-  identityAddress: { fontFamily: 'SpaceMono-Regular', fontSize: 11, color: '#9090B0' },
+  identityAddress: { fontFamily: FontFamily.mono, fontSize: 11, color: '#9090B0' },
   copyBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#2A2A3A' },
 
   sectionTitle: { fontWeight: '700', fontSize: 12, color: '#5050A0', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 8, paddingHorizontal: 4 },
@@ -536,7 +536,7 @@ const styles = StyleSheet.create({
   seedBlurCard:    { width: '100%', backgroundColor: '#12121A', borderRadius: 16, borderWidth: 1, borderColor: '#2A2A3A', padding: 16, overflow: 'hidden' },
   seedBlurGrid:    { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   seedBlurChip:    { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1A1A26', borderWidth: 1, borderColor: '#2A2A3A', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, width: '30%', gap: 6 },
-  seedBlurNum:     { fontFamily: 'SpaceMono-Regular', fontSize: 10, color: '#3A3A50', minWidth: 14 },
+  seedBlurNum:     { fontFamily: FontFamily.mono, fontSize: 10, color: '#3A3A50', minWidth: 14 },
   seedBlurWord:    { fontSize: 13, color: '#3A3A50' },
 
   seedError:     { flexDirection: 'row', alignItems: 'flex-start', gap: 8, backgroundColor: Colors.errorBg, borderWidth: 1, borderColor: Colors.error, borderRadius: 10, padding: 12, width: '100%' },
@@ -550,7 +550,7 @@ const styles = StyleSheet.create({
   seedRevealedWrap: { gap: 16 },
   seedGrid:         { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   seedChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1A1A26', borderWidth: 1, borderColor: 'rgba(0,212,255,0.2)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, width: '30%', gap: 6 },
-  seedChipNum:  { fontFamily: 'SpaceMono-Regular', fontSize: 10, color: '#5050A0', minWidth: 14 },
+  seedChipNum:  { fontFamily: FontFamily.mono, fontSize: 10, color: '#5050A0', minWidth: 14 },
   seedChipWord: { fontWeight: '700', fontSize: 13, color: '#F0F0FF' },
 
   copyPhraseBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderWidth: 1, borderColor: '#2A2A3A', borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)' },

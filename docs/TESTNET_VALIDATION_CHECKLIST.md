@@ -47,6 +47,19 @@ Use this checklist before sharing a GitHub repo, demo video, or Circle/Arc grant
 - [ ] Receive screen has a copy wallet button and shows copied feedback.
 - [ ] Scanning Receive QR opens the expected Send/Pay flow.
 
+## Universal Pay / Arc Extensions
+
+- [ ] Direct route is selected only when the chosen Arc token balance covers the amount.
+- [ ] Onchain memo requires a reference and clearly warns that memo data is public.
+- [ ] Memo payment confirms only when `BeforeMemo`, `Memo`, and token `Transfer` events match the reviewed payment.
+- [ ] Unified Balance appears only when App Kit is configured, its confirmed balance source loaded, and USDC covers the amount.
+- [ ] A Unified Balance receipt/RPC uncertainty remains Pending and does not invite a duplicate submit.
+- [ ] Swap-first and bridge-first routes open their dedicated review screens and never auto-sign a follow-up payment.
+- [ ] Batch payout rejects invalid/duplicate wallets, zero values, more than 20 recipients, and totals above the USDC balance.
+- [ ] Batch payout simulates all calls before signing and uses all-or-nothing execution.
+- [ ] Completed batch shows an event-verified badge only after every expected USDC `Transfer` event matches.
+- [ ] Batch payout creates one payment intent and one unified activity item for its single transaction hash.
+
 ## Split Bill
 
 - [ ] Create Split Bill with Total USDC, People, Note, Receiver Wallet, and Expiry.
@@ -102,4 +115,16 @@ Use this checklist before sharing a GitHub repo, demo video, or Circle/Arc grant
 - [ ] `npm run lint` passes with zero warnings.
 - [ ] `npm test` passes.
 - [ ] `npx expo export --platform ios --clear` completes successfully.
+
+## Lottie Motion - Physical iPhone Only
+
+- [ ] Native splash shows the static T Pay mark before the React loading scene.
+- [ ] React Lottie loading scene exits in under 2 seconds and falls back to the static T mark without a blank screen.
+- [ ] Home balance coin loops smoothly for about 6-8 seconds per cycle and never covers the balance or eye control.
+- [ ] A balance change runs the 600-800 ms count-up without shifting the surrounding layout.
+- [ ] Home balance card tilt stays subtle (about +/-4 degrees) and stops when Reduce Motion is enabled.
+- [ ] Pay / Request / Split / Swap icons react for about 200 ms with light haptic feedback.
+- [ ] Send, Swap, Split, address entry, transaction review, and signing screens contain no heavy animation.
+- [ ] Reduce Motion replaces looping/action animation with a clear static fallback.
+- [ ] App remains responsive after backgrounding/foregrounding and repeatedly opening Home.
 

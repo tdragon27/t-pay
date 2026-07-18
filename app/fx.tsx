@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
+import { Colors, FontFamily, FontSize, Radius, Spacing } from '@/constants/theme';
 import { FX_TOKENS, type FxTokenSymbol } from '@/constants/chains';
 import {
   executeFxSwap,
@@ -435,15 +435,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: { fontSize: 22, color: Colors.text1, fontWeight: '700', letterSpacing: -0.4 },
-  headerSub: { color: Colors.text3, fontSize: FontSize.xs },
+  headerTitle: { fontFamily: FontFamily.displaySemiBold, fontSize: 22, color: Colors.text1, letterSpacing: -0.4 },
+  headerSub: { color: Colors.text3, fontFamily: FontFamily.body, fontSize: FontSize.xs },
   swapCard: {
     gap: 12,
     backgroundColor: 'rgba(18,18,28,0.88)',
     borderColor: 'rgba(255,255,255,0.08)',
   },
   cardHeaderRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
-  panelTitle: { color: Colors.text1, fontSize: FontSize.md, fontWeight: '800' },
+  panelTitle: { color: Colors.text1, fontFamily: FontFamily.displaySemiBold, fontSize: FontSize.md },
   balanceLine: { color: Colors.text3, fontSize: FontSize.xs, textAlign: 'right', flexShrink: 1 },
   receivePreview: { color: Colors.primary, fontSize: FontSize.sm, fontWeight: '800', flexShrink: 1, textAlign: 'right' },
   inlineWarning: {

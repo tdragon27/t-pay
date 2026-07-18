@@ -1,0 +1,2 @@
+[functions.verify-split-payment]
+verify_jwt = true

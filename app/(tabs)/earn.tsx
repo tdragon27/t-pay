@@ -196,7 +196,7 @@ export default function EarnScreen() {
         <Card style={styles.missionCard}>
           <View style={styles.sectionHeaderRow}>
             <View>
-              <Text style={styles.sectionTitle}>Daily loop</Text>
+              <Text style={styles.sectionTitle}>Daily Loop</Text>
               <Text style={styles.sectionSub}>Simple actions that make the app feel alive.</Text>
             </View>
             <Ionicons name="flag-outline" size={22} color={Colors.primary} />
@@ -211,7 +211,7 @@ export default function EarnScreen() {
         <Card style={styles.badgeCard}>
           <View style={styles.sectionHeaderRow}>
             <View>
-              <Text style={styles.sectionTitle}>Passport badges</Text>
+              <Text style={styles.sectionTitle}>Passport Badges</Text>
               <Text style={styles.sectionSub}>{earnedBadges}/{snapshot.badges.length} unlocked</Text>
             </View>
             <Ionicons name="ribbon-outline" size={22} color={Colors.warning} />
@@ -226,7 +226,7 @@ export default function EarnScreen() {
           <Button label="Picks" variant="secondary" onPress={() => router.push('/(tabs)/markets' as any)} style={{ flex: 1 }} />
         </View>
 
-        <Text style={styles.sectionTitle}>More to try</Text>
+        <Text style={styles.sectionTitle}>More to Try</Text>
         <View style={styles.actionsList}>
           {EARN_ACTIONS.map((action) => (
             <EarnActionCard key={action.title} action={action} />

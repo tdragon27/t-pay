@@ -11,7 +11,7 @@ import {
   type TextInputProps,
 } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
+import { Colors, FontFamily, FontSize, Radius, Spacing } from '@/constants/theme';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: FontSize.sm,
     color: Colors.text2,
-    fontWeight: '500',
+    fontFamily: FontFamily.bodyMedium,
     letterSpacing: 0.3,
     textTransform: 'uppercase',
   },
@@ -130,6 +130,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FontSize.md,
     color: Colors.text1,
+    fontFamily: FontFamily.body,
     paddingVertical: Spacing.sm + 4,
   },
   multilineInput: {
@@ -155,16 +156,18 @@ const styles = StyleSheet.create({
   doneText: {
     color: Colors.primary,
     fontSize: FontSize.sm,
-    fontWeight: '700',
+    fontFamily: FontFamily.bodySemiBold,
   },
   error: {
     fontSize: FontSize.xs,
     color: Colors.error,
+    fontFamily: FontFamily.body,
     marginTop: 2,
   },
   hint: {
     fontSize: FontSize.xs,
     color: Colors.text3,
+    fontFamily: FontFamily.body,
     marginTop: 2,
   },
 });

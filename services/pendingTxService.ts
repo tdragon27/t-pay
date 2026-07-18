@@ -1,7 +1,7 @@
 ﻿import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '@/constants/STORAGE_KEYS';
 
-export type PendingTxType = 'send' | 'swap' | 'bridge' | 'invoice' | 'market' | 'recurring';
+export type PendingTxType = 'send' | 'swap' | 'bridge' | 'invoice' | 'market' | 'recurring' | 'batch';
 
 export interface PendingTx {
   txHash: string;

@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
+import { Platform } from 'react-native';
 import { randomBytes, sha256, toUtf8Bytes } from 'ethers';
 import { STORAGE_KEYS } from '@/constants/STORAGE_KEYS';
 import { wipeWallet } from '@/lib/wallet';
@@ -14,6 +15,9 @@ const WIPE_ATTEMPTS = 10;
 const PIN_LOCK_MS = 30_000;
 
 export function isPinSecurityEnabled() {
+  // Web preview wallets are intentionally session-only. Native SecureStore,
+  // biometric authentication, and persistent PIN protection are unavailable.
+  if (Platform.OS === 'web') return false;
   const raw = String(process.env.EXPO_PUBLIC_PIN_SECURITY_ENABLED ?? 'true').trim().toLowerCase();
   return !['0', 'false', 'off', 'disabled', 'no'].includes(raw);
 }
@@ -48,7 +52,9 @@ export async function loadSecuritySettings(): Promise<SecuritySettings> {
   if (raw) {
     try { stored = JSON.parse(raw); } catch { stored = {}; }
   }
-  const biometricFlag = await SecureStore.getItemAsync(BIOMETRIC_KEY);
+  const biometricFlag = Platform.OS === 'web'
+    ? null
+    : await SecureStore.getItemAsync(BIOMETRIC_KEY);
   return {
     autoLockMs: stored.autoLockMs ?? DEFAULT_AUTO_LOCK_MS,
     biometricEnabled: stored.biometricEnabled ?? biometricFlag === '1',
@@ -59,9 +65,11 @@ export async function saveSecuritySettings(settings: Partial<SecuritySettings>) 
   const current = await loadSecuritySettings();
   const next = { ...current, ...settings };
   await AsyncStorage.setItem(STORAGE_KEYS.SECURITY_SETTINGS, JSON.stringify(next));
-  await SecureStore.setItemAsync(BIOMETRIC_KEY, next.biometricEnabled ? '1' : '0', {
-    keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-  });
+  if (Platform.OS !== 'web') {
+    await SecureStore.setItemAsync(BIOMETRIC_KEY, next.biometricEnabled ? '1' : '0', {
+      keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+    });
+  }
   return next;
 }
 
@@ -77,6 +85,9 @@ export function validatePinFormat(pin: string) {
 }
 
 export async function setupPin(pin: string, biometricEnabled = false) {
+  if (Platform.OS === 'web') {
+    throw new Error('PIN and biometric protection are available in the T Pay mobile app.');
+  }
   if (!validatePinFormat(pin)) throw new Error('PIN must be 4 to 6 digits.');
   const salt = makeSalt();
   await SecureStore.setItemAsync(PIN_SALT_KEY, salt, { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY });
@@ -97,6 +108,7 @@ export async function resetPinAttempts() {
 }
 
 export async function verifyPin(pin: string) {
+  if (Platform.OS === 'web') return true;
   const state = await getPinAttemptState();
   if (state.remainingLockMs > 0) {
     throw new Error(`Too many failed attempts. Try again in ${Math.ceil(state.remainingLockMs / 1000)}s.`);
@@ -130,12 +142,14 @@ export async function verifyPin(pin: string) {
 }
 
 export async function canUseBiometrics() {
+  if (Platform.OS === 'web') return false;
   const compatible = await LocalAuthentication.hasHardwareAsync();
   const enrolled = await LocalAuthentication.isEnrolledAsync();
   return compatible && enrolled;
 }
 
 export async function unlockWithBiometric() {
+  if (Platform.OS === 'web') return false;
   const settings = await loadSecuritySettings();
   if (!settings.biometricEnabled) return false;
   if (!(await canUseBiometrics())) return false;

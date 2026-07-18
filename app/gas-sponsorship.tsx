@@ -46,12 +46,12 @@ export default function GasSponsorshipScreen() {
         </Card>
 
         <Card style={styles.cardGap}>
-          <Text style={styles.sectionTitle}>Arc execution model</Text>
+          <Text style={styles.sectionTitle}>Arc Execution Model</Text>
           <Text style={styles.bodyText}>Arc uses native USDC for gas. Normal T Pay transactions stay live even when sponsorship is disabled. Sponsored transactions should only be enabled after a tested smart-wallet/paymaster flow is wired end-to-end.</Text>
         </Card>
 
         <Card style={styles.cardGap}>
-          <Text style={styles.sectionTitle}>Readiness checklist</Text>
+          <Text style={styles.sectionTitle}>Readiness Checklist</Text>
           <StatusRow label="Circle App Kit" value={status.appKitReady ? 'Configured' : 'Missing app kit key'} ok={status.appKitReady} />
           <StatusRow label="Paymaster URL" value={status.paymasterUrl ?? 'Not configured'} ok={Boolean(status.paymasterUrl)} />
           <StatusRow label="Smart wallet flag" value={status.smartWalletEnabled ? 'Enabled' : 'Disabled'} ok={status.smartWalletEnabled} />
